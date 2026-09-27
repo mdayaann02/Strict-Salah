@@ -25,5 +25,9 @@ data class UserProfileEntity(
     val dhuhrOffsetMinutes: Int = 0,
     val asrOffsetMinutes: Int = 0,
     val maghribOffsetMinutes: Int = 0,
-    val ishaOffsetMinutes: Int = 0
+    val ishaOffsetMinutes: Int = 0,
+    val isGoogleSignedIn: Boolean = false,
+    val googleEmail: String = "",
+    val googleDisplayName: String = "",
+    val googlePhotoUrl: String = ""
 )

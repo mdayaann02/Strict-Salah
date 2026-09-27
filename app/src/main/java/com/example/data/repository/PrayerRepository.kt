@@ -332,6 +332,30 @@ class PrayerRepository(
         )
     }
 
+    suspend fun signInWithGoogle(email: String, displayName: String, photoUrl: String = "") {
+        val profile = ensureProfile()
+        prayerDao.updateProfile(
+            profile.copy(
+                isGoogleSignedIn = true,
+                googleEmail = email,
+                googleDisplayName = displayName,
+                googlePhotoUrl = photoUrl
+            )
+        )
+    }
+
+    suspend fun signOutGoogle() {
+        val profile = ensureProfile()
+        prayerDao.updateProfile(
+            profile.copy(
+                isGoogleSignedIn = false,
+                googleEmail = "",
+                googleDisplayName = "",
+                googlePhotoUrl = ""
+            )
+        )
+    }
+
     private fun applyOffset(timeFormatted: String, offsetMinutes: Int): String {
         if (offsetMinutes == 0) return timeFormatted
         try {

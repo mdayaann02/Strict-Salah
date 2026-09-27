@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PrayerType
 import com.example.ui.components.GoogleMapsCard
+import com.example.ui.components.GoogleSignInCard
 import com.example.ui.components.LocationPickerBar
 import com.example.ui.components.NextPrayerCard
 import com.example.ui.components.OverlayPermissionCard
@@ -53,6 +54,8 @@ fun HomeScreen(
     onPrayerClick: (PrayerType) -> Unit,
     onSyncSearchGrounding: () -> Unit,
     onUpdateLocation: (city: String, lat: Double, lng: Double) -> Unit,
+    onSignInGoogle: (email: String, name: String) -> Unit,
+    onSignOutGoogle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val schedule = uiState.schedule
@@ -70,6 +73,15 @@ fun HomeScreen(
         item {
             Spacer(modifier = Modifier.height(4.dp))
             OverlayPermissionCard()
+        }
+
+        // Google Sign-In / Account Card
+        item {
+            GoogleSignInCard(
+                profile = profile,
+                onSignIn = onSignInGoogle,
+                onSignOut = onSignOutGoogle
+            )
         }
 
         item {

@@ -28,6 +28,7 @@ import java.util.Locale
 
 enum class AppScreen {
     HOME,
+    STATISTICS,
     LOCKDOWN,
     HISTORY,
     SETTINGS
@@ -394,6 +395,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun postSnackbar(message: String) {
         _uiState.update { it.copy(snackbarMessage = message) }
+    }
+
+    fun signInWithGoogle(email: String, displayName: String, photoUrl: String = "") {
+        viewModelScope.launch {
+            repository.signInWithGoogle(email, displayName, photoUrl)
+            postSnackbar("Signed in as $displayName ($email)")
+        }
+    }
+
+    fun signOutGoogle() {
+        viewModelScope.launch {
+            repository.signOutGoogle()
+            postSnackbar("Signed out of Google account")
+        }
     }
 
     fun clearSnackbar() {

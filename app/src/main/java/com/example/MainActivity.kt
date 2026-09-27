@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
@@ -51,6 +52,7 @@ import com.example.ui.screens.HistoryScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.LockdownScreen
 import com.example.ui.screens.SettingsScreen
+import com.example.ui.screens.StatisticsScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.AppScreen
 import com.example.ui.viewmodel.MainViewModel
@@ -155,6 +157,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                     Text(
                         text = when (uiState.currentScreen) {
                             AppScreen.HOME -> "Strict Namaz 🕌"
+                            AppScreen.STATISTICS -> "Salah Statistics & Progress 📊"
                             AppScreen.HISTORY -> "Prayer & Penalty Ledger"
                             AppScreen.SETTINGS -> "Prayer Schedule & Settings"
                             else -> "Strict Namaz"
@@ -183,40 +186,11 @@ fun MainAppContent(viewModel: MainViewModel) {
                 )
 
                 NavigationBarItem(
-                    selected = uiState.currentScreen == AppScreen.LOCKDOWN,
-                    onClick = {
-                        if (uiState.isLockdownActive) {
-                            viewModel.setScreen(AppScreen.LOCKDOWN)
-                        } else {
-                            viewModel.postSnackbar("🔒 Auto-Lockdown is armed. It automatically locks your phone when Namaz starts.")
-                        }
-                    },
-                    icon = {
-                        BadgedBox(
-                            badge = {
-                                if (uiState.isLockdownActive) {
-                                    Badge(containerColor = Color(0xFFD32F2F)) {
-                                        Text("!")
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(
-                                Icons.Default.Lock,
-                                contentDescription = "Lock",
-                                tint = if (uiState.isLockdownActive) Color(0xFFD32F2F) else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    label = {
-                        Text(
-                            "Lockdown",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (uiState.isLockdownActive) Color(0xFFD32F2F) else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    modifier = Modifier.testTag("nav_lockdown")
+                    selected = uiState.currentScreen == AppScreen.STATISTICS,
+                    onClick = { viewModel.setScreen(AppScreen.STATISTICS) },
+                    icon = { Icon(Icons.Default.BarChart, contentDescription = "Statistics") },
+                    label = { Text("Statistics", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
+                    modifier = Modifier.testTag("nav_statistics")
                 )
 
                 NavigationBarItem(
@@ -249,7 +223,14 @@ fun MainAppContent(viewModel: MainViewModel) {
                     onOpenActiveLock = { prayer -> viewModel.setScreen(AppScreen.LOCKDOWN) },
                     onPrayerClick = { prayer -> /* information */ },
                     onSyncSearchGrounding = { viewModel.triggerGoogleSearchSync() },
-                    onUpdateLocation = { city, lat, lng -> viewModel.updateLocation(city, lat, lng) }
+                    onUpdateLocation = { city, lat, lng -> viewModel.updateLocation(city, lat, lng) },
+                    onSignInGoogle = { email, name -> viewModel.signInWithGoogle(email, name) },
+                    onSignOutGoogle = { viewModel.signOutGoogle() }
+                )
+                AppScreen.STATISTICS -> StatisticsScreen(
+                    uiState = uiState,
+                    onSignInGoogle = { email, name -> viewModel.signInWithGoogle(email, name) },
+                    onSignOutGoogle = { viewModel.signOutGoogle() }
                 )
                 AppScreen.HISTORY -> HistoryScreen(uiState = uiState)
                 AppScreen.SETTINGS -> SettingsScreen(
