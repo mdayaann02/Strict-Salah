@@ -47,6 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.UserProfileEntity
+import com.example.data.model.PrayerType
+import com.example.ui.components.PrayerTimingsManagementCard
 import com.example.ui.components.RegisteredJanamazCard
 import com.example.ui.viewmodel.MainUiState
 
@@ -57,6 +59,10 @@ fun SettingsScreen(
     onSaveSettings: (notifEnabled: Boolean, reminderMin: Int, lockMin: Int, appLock: Boolean) -> Unit,
     onTriggerSearchSync: () -> Unit,
     onOpenJanamazRegistration: () -> Unit = {},
+    onUpdatePrayerTiming: (PrayerType, String) -> Unit = { _, _ -> },
+    onResetPrayerTiming: (PrayerType) -> Unit = {},
+    onResetAllPrayerTimings: () -> Unit = {},
+    onToggleUseCustomTimings: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val profile = uiState.profile
@@ -80,6 +86,16 @@ fun SettingsScreen(
             .testTag("settings_screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // 12-Hour Prayer Timings & Mosque Schedule Management Card
+        PrayerTimingsManagementCard(
+            schedule = uiState.schedule,
+            profile = profile,
+            onUpdatePrayerTiming = onUpdatePrayerTiming,
+            onResetPrayerTiming = onResetPrayerTiming,
+            onResetAllToDefault = onResetAllPrayerTimings,
+            onToggleUseCustom = onToggleUseCustomTimings
+        )
+
         // Notification Settings Section
         Card(
             shape = RoundedCornerShape(18.dp),

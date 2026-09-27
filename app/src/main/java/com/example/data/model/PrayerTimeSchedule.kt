@@ -2,7 +2,10 @@ package com.example.data.model
 
 data class PrayerTimeItem(
     val prayerType: PrayerType,
-    val timeFormatted: String, // HH:mm format, e.g. "05:15"
+    val timeFormatted: String, // 12-hour format, e.g. "5:15 AM"
+    val time24: String = "00:00", // 24-hour format, e.g. "05:15"
+    val defaultBaseTime: String = "", // 12-hour baseline default time
+    val isCustom: Boolean = false,
     val isLockedActive: Boolean = false,
     val isOfferedToday: Boolean = false,
     val isSkippedToday: Boolean = false,

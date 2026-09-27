@@ -305,7 +305,14 @@ fun MainAppContent(viewModel: MainViewModel) {
                         viewModel.updateSettings(notif, rem, lock, appLock)
                     },
                     onTriggerSearchSync = { viewModel.triggerGoogleSearchSync() },
-                    onOpenJanamazRegistration = { viewModel.openJanamazRegistration() }
+                    onOpenJanamazRegistration = { viewModel.openJanamazRegistration() },
+                    onUpdatePrayerTiming = { prayer, time24 -> viewModel.updateCustomPrayerTiming(prayer, time24) },
+                    onResetPrayerTiming = { prayer ->
+                        // Reset single prayer timing
+                        viewModel.updateCustomPrayerTiming(prayer, "")
+                    },
+                    onResetAllPrayerTimings = { viewModel.resetPrayerTimingsToDefault() },
+                    onToggleUseCustomTimings = { enabled -> viewModel.toggleUseCustomTimings(enabled) }
                 )
                 AppScreen.LOCKDOWN -> {
                     // Handled above

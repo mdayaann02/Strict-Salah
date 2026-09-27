@@ -150,7 +150,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val lockWindowMinutes = _uiState.value.profile.lockdownDurationMinutes
 
         for (item in schedule.prayers) {
-            val parts = item.timeFormatted.split(":")
+            val parts = item.time24.split(":")
             val prayerMinutes = parts[0].toInt() * 60 + parts[1].toInt()
 
             // Check if prayer is currently active (within lock window and not yet verified)
@@ -496,6 +496,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     snackbarMessage = "Removed Janamaz reference"
                 )
             }
+        }
+    }
+
+    fun updateCustomPrayerTiming(prayerType: PrayerType, time24: String) {
+        viewModelScope.launch {
+            repository.updateSinglePrayerCustomTiming(prayerType, time24)
+            postSnackbar("Set ${prayerType.displayName} time to ${repository.formatTo12Hour(time24)}")
+        }
+    }
+
+    fun resetPrayerTimingsToDefault() {
+        viewModelScope.launch {
+            repository.resetPrayerTimingsToDefault()
+            postSnackbar("Reset all prayer timings to GPS calculated baseline")
+        }
+    }
+
+    fun toggleUseCustomTimings(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setUseCustomTimings(enabled)
+            postSnackbar(if (enabled) "Switched to custom mosque timings" else "Switched to calculated GPS default timings")
         }
     }
 }

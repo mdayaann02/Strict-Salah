@@ -69,6 +69,7 @@ class PrayerRepository(
 
     /**
      * Compute current daily schedule combining GPS coordinates, user offsets, and Google Search Grounding.
+     * Generates prayer times in 12-hour format while preserving calculated GPS baseline defaults.
      */
     suspend fun getDailySchedule(profile: UserProfileEntity): DailySchedule {
         val todayStr = getTodayDateString()
@@ -78,12 +79,20 @@ class PrayerRepository(
             longitude = profile.longitude
         )
 
-        // 2. Apply offsets
-        val fajrTime = applyOffset(baseline.fajr, profile.fajrOffsetMinutes)
-        val dhuhrTime = applyOffset(baseline.dhuhr, profile.dhuhrOffsetMinutes)
-        val asrTime = applyOffset(baseline.asr, profile.asrOffsetMinutes)
-        val maghribTime = applyOffset(baseline.maghrib, profile.maghribOffsetMinutes)
-        val ishaTime = applyOffset(baseline.isha, profile.ishaOffsetMinutes)
+        // 2. Apply offsets to baseline
+        val baseFajr = applyOffset(baseline.fajr, profile.fajrOffsetMinutes)
+        val baseDhuhr = applyOffset(baseline.dhuhr, profile.dhuhrOffsetMinutes)
+        val baseAsr = applyOffset(baseline.asr, profile.asrOffsetMinutes)
+        val baseMaghrib = applyOffset(baseline.maghrib, profile.maghribOffsetMinutes)
+        val baseIsha = applyOffset(baseline.isha, profile.ishaOffsetMinutes)
+
+        // 3. Determine effective time (custom if set & enabled, otherwise baseline)
+        val useCustom = profile.useCustomTimings
+        val effectiveFajr = if (useCustom && profile.customFajrTime.isNotBlank()) profile.customFajrTime else baseFajr
+        val effectiveDhuhr = if (useCustom && profile.customDhuhrTime.isNotBlank()) profile.customDhuhrTime else baseDhuhr
+        val effectiveAsr = if (useCustom && profile.customAsrTime.isNotBlank()) profile.customAsrTime else baseAsr
+        val effectiveMaghrib = if (useCustom && profile.customMaghribTime.isNotBlank()) profile.customMaghribTime else baseMaghrib
+        val effectiveIsha = if (useCustom && profile.customIshaTime.isNotBlank()) profile.customIshaTime else baseIsha
 
         // Check today's logged status
         val todayLogs = prayerDao.getLogsForDate(todayStr).firstOrNull() ?: emptyList()
@@ -94,35 +103,50 @@ class PrayerRepository(
         val items = listOf(
             PrayerTimeItem(
                 prayerType = PrayerType.FAJR,
-                timeFormatted = fajrTime,
+                timeFormatted = formatTo12Hour(effectiveFajr),
+                time24 = effectiveFajr,
+                defaultBaseTime = formatTo12Hour(baseFajr),
+                isCustom = useCustom && profile.customFajrTime.isNotBlank(),
                 isOfferedToday = offeredNames.contains(PrayerType.FAJR.name),
                 isSkippedToday = skippedNames.contains(PrayerType.FAJR.name),
                 isPenaltyPaid = penaltyNames.contains(PrayerType.FAJR.name)
             ),
             PrayerTimeItem(
                 prayerType = PrayerType.DHUHR,
-                timeFormatted = dhuhrTime,
+                timeFormatted = formatTo12Hour(effectiveDhuhr),
+                time24 = effectiveDhuhr,
+                defaultBaseTime = formatTo12Hour(baseDhuhr),
+                isCustom = useCustom && profile.customDhuhrTime.isNotBlank(),
                 isOfferedToday = offeredNames.contains(PrayerType.DHUHR.name),
                 isSkippedToday = skippedNames.contains(PrayerType.DHUHR.name),
                 isPenaltyPaid = penaltyNames.contains(PrayerType.DHUHR.name)
             ),
             PrayerTimeItem(
                 prayerType = PrayerType.ASR,
-                timeFormatted = asrTime,
+                timeFormatted = formatTo12Hour(effectiveAsr),
+                time24 = effectiveAsr,
+                defaultBaseTime = formatTo12Hour(baseAsr),
+                isCustom = useCustom && profile.customAsrTime.isNotBlank(),
                 isOfferedToday = offeredNames.contains(PrayerType.ASR.name),
                 isSkippedToday = skippedNames.contains(PrayerType.ASR.name),
                 isPenaltyPaid = penaltyNames.contains(PrayerType.ASR.name)
             ),
             PrayerTimeItem(
                 prayerType = PrayerType.MAGHRIB,
-                timeFormatted = maghribTime,
+                timeFormatted = formatTo12Hour(effectiveMaghrib),
+                time24 = effectiveMaghrib,
+                defaultBaseTime = formatTo12Hour(baseMaghrib),
+                isCustom = useCustom && profile.customMaghribTime.isNotBlank(),
                 isOfferedToday = offeredNames.contains(PrayerType.MAGHRIB.name),
                 isSkippedToday = skippedNames.contains(PrayerType.MAGHRIB.name),
                 isPenaltyPaid = penaltyNames.contains(PrayerType.MAGHRIB.name)
             ),
             PrayerTimeItem(
                 prayerType = PrayerType.ISHA,
-                timeFormatted = ishaTime,
+                timeFormatted = formatTo12Hour(effectiveIsha),
+                time24 = effectiveIsha,
+                defaultBaseTime = formatTo12Hour(baseIsha),
+                isCustom = useCustom && profile.customIshaTime.isNotBlank(),
                 isOfferedToday = offeredNames.contains(PrayerType.ISHA.name),
                 isSkippedToday = skippedNames.contains(PrayerType.ISHA.name),
                 isPenaltyPaid = penaltyNames.contains(PrayerType.ISHA.name)
@@ -135,9 +159,56 @@ class PrayerRepository(
             latitude = profile.latitude,
             longitude = profile.longitude,
             isGroundedWithGoogleSearch = profile.isGroundedViaSearch,
-            sourceDescription = if (profile.isGroundedViaSearch) "Google Search Grounded via gemini-3.5-flash" else "Astronomical GPS calculation",
+            sourceDescription = if (profile.useCustomTimings) "Custom mosque schedule (Default: GPS)" else if (profile.isGroundedViaSearch) "Google Search Grounded via gemini-3.5-flash" else "Astronomical GPS calculation",
             prayers = items
         )
+    }
+
+    fun formatTo12Hour(time24: String): String {
+        return try {
+            val parts = time24.trim().split(":")
+            val hour = parts[0].toInt()
+            val minute = parts[1].toInt()
+            val amPm = if (hour >= 12) "PM" else "AM"
+            val hour12 = when {
+                hour == 0 -> 12
+                hour > 12 -> hour - 12
+                else -> hour
+            }
+            String.format(Locale.US, "%d:%02d %s", hour12, minute, amPm)
+        } catch (e: Exception) {
+            time24
+        }
+    }
+
+    suspend fun updateSinglePrayerCustomTiming(prayerType: PrayerType, time24: String) {
+        val profile = ensureProfile()
+        val updated = when (prayerType) {
+            PrayerType.FAJR -> profile.copy(customFajrTime = time24, useCustomTimings = true)
+            PrayerType.DHUHR -> profile.copy(customDhuhrTime = time24, useCustomTimings = true)
+            PrayerType.ASR -> profile.copy(customAsrTime = time24, useCustomTimings = true)
+            PrayerType.MAGHRIB -> profile.copy(customMaghribTime = time24, useCustomTimings = true)
+            PrayerType.ISHA -> profile.copy(customIshaTime = time24, useCustomTimings = true)
+        }
+        prayerDao.updateProfile(updated)
+    }
+
+    suspend fun resetPrayerTimingsToDefault() {
+        val profile = ensureProfile()
+        val updated = profile.copy(
+            customFajrTime = "",
+            customDhuhrTime = "",
+            customAsrTime = "",
+            customMaghribTime = "",
+            customIshaTime = "",
+            useCustomTimings = false
+        )
+        prayerDao.updateProfile(updated)
+    }
+
+    suspend fun setUseCustomTimings(enabled: Boolean) {
+        val profile = ensureProfile()
+        prayerDao.updateProfile(profile.copy(useCustomTimings = enabled))
     }
 
     /**

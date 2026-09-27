@@ -31,5 +31,11 @@ data class UserProfileEntity(
     val googleDisplayName: String = "",
     val googlePhotoUrl: String = "",
     val registeredJanamazUris: String = "",
-    val isJanamazRegistered: Boolean = false
+    val isJanamazRegistered: Boolean = false,
+    val customFajrTime: String = "",
+    val customDhuhrTime: String = "",
+    val customAsrTime: String = "",
+    val customMaghribTime: String = "",
+    val customIshaTime: String = "",
+    val useCustomTimings: Boolean = false
 )
