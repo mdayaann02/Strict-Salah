@@ -6,6 +6,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.WindowManager
+import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -65,6 +68,34 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        }
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        // Strict back-press prevention: Never allow exiting during Namaz lockdown
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val state = viewModel.uiState.value
+                if (state.isLockdownActive || state.currentScreen == AppScreen.LOCKDOWN) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "🔒 Strict Namaz: Cannot exit or go back during lockdown! Verify your Janamaz or pay penalty to unlock.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else if (state.currentScreen != AppScreen.HOME) {
+                    viewModel.setScreen(AppScreen.HOME)
+                } else {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Strict Namaz is actively guarding your prayer times.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        })
+
         // Handle intent from notifications
         intent?.let { handleIntent(it) }
 
@@ -72,6 +103,34 @@ class MainActivity : ComponentActivity() {
             MyApplicationTheme {
                 MainAppContent(viewModel = viewModel)
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (viewModel.uiState.value.isLockdownActive) {
+            viewModel.setScreen(AppScreen.LOCKDOWN)
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        // If user tries to press Home button or switch apps while lockdown is active, pull Strict Namaz right back
+        if (viewModel.uiState.value.isLockdownActive) {
+            val intent = Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+            startActivity(intent)
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus && viewModel.uiState.value.isLockdownActive) {
+            val intent = Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+            startActivity(intent)
         }
     }
 
@@ -136,8 +195,8 @@ fun MainAppContent(viewModel: MainViewModel) {
         }
     }
 
-    // If lockdown is explicitly active and screen is LOCKDOWN, render LockdownScreen full-screen
-    if (uiState.currentScreen == AppScreen.LOCKDOWN) {
+    // If lockdown is explicitly active or screen is LOCKDOWN, render LockdownScreen full-screen
+    if (uiState.isLockdownActive || uiState.currentScreen == AppScreen.LOCKDOWN) {
         LockdownScreen(
             uiState = uiState,
             onPhotoSelected = { viewModel.setCapturedPhoto(it) },

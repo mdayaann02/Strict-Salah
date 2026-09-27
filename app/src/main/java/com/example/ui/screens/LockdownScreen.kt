@@ -97,9 +97,13 @@ fun LockdownScreen(
     var showSkipConfirmDialog by remember { mutableStateOf(false) }
     var showCameraPermissionRationale by remember { mutableStateOf(false) }
 
-    // Intercept back navigation to maintain active lockdown mode until authorized
-    BackHandler(enabled = uiState.isLockdownActive) {
-        // Can only exit via verification or skip/payment flow
+    // Strict back prevention: Cannot exit or go back during lockdown
+    BackHandler(enabled = true) {
+        android.widget.Toast.makeText(
+            context,
+            "🔒 Strict Lockdown Active! You cannot exit or go back until you verify your Janamaz or pay the penalty.",
+            android.widget.Toast.LENGTH_SHORT
+        ).show()
     }
 
     // Camera launcher (takes photo preview)
