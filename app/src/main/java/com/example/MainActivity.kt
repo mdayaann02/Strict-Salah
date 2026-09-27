@@ -20,7 +20,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -30,6 +32,7 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -42,16 +45,22 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.example.data.model.PrayerType
 import com.example.ui.components.JanamazRegistrationDialog
+import com.example.ui.components.ProfileDialog
 import com.example.ui.screens.HistoryScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.LockdownScreen
@@ -189,6 +198,17 @@ fun MainAppContent(viewModel: MainViewModel) {
         }
     }
 
+    var showProfileDialog by rememberSaveable { mutableStateOf(false) }
+    var hasAutoPromptedJanamaz by rememberSaveable { mutableStateOf(false) }
+
+    // Auto-prompt Janamaz registration on first launch if not yet registered
+    LaunchedEffect(uiState.profile.isJanamazRegistered) {
+        if (!uiState.profile.isJanamazRegistered && !hasAutoPromptedJanamaz) {
+            hasAutoPromptedJanamaz = true
+            viewModel.openJanamazRegistration()
+        }
+    }
+
     LaunchedEffect(uiState.snackbarMessage) {
         uiState.snackbarMessage?.let { msg ->
             snackbarHostState.showSnackbar(msg)
@@ -217,14 +237,38 @@ fun MainAppContent(viewModel: MainViewModel) {
                     Text(
                         text = when (uiState.currentScreen) {
                             AppScreen.HOME -> "Strict Namaz 🕌"
-                            AppScreen.STATISTICS -> "Salah Statistics & Progress 📊"
-                            AppScreen.HISTORY -> "Prayer & Penalty Ledger"
+                            AppScreen.STATISTICS -> "Salah Statistics 📊"
+                            AppScreen.HISTORY -> "Prayer Ledger"
                             AppScreen.SETTINGS -> "Prayer Schedule & Settings"
                             else -> "Strict Namaz"
                         },
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
+                },
+                actions = {
+                    // Profile button at top-right
+                    IconButton(
+                        onClick = { showProfileDialog = true },
+                        modifier = Modifier.testTag("top_right_profile_button")
+                    ) {
+                        if (uiState.profile.isGoogleSignedIn && uiState.profile.googlePhotoUrl.isNotBlank()) {
+                            AsyncImage(
+                                model = uiState.profile.googlePhotoUrl,
+                                contentDescription = "Profile",
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Profile & Account",
+                                tint = if (uiState.profile.isGoogleSignedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
@@ -283,11 +327,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                     onOpenActiveLock = { prayer -> viewModel.setScreen(AppScreen.LOCKDOWN) },
                     onPrayerClick = { prayer -> /* information */ },
                     onSyncSearchGrounding = { viewModel.triggerGoogleSearchSync() },
-                    onUpdateLocation = { city, lat, lng -> viewModel.updateLocation(city, lat, lng) },
-                    onSignInGoogle = { email, name -> viewModel.signInWithGoogle(email, name) },
-                    onSignOutGoogle = { viewModel.signOutGoogle() },
-                    onBackupToDrive = { viewModel.syncDataToGoogleDrive() },
-                    onOpenJanamazRegistration = { viewModel.openJanamazRegistration() }
+                    onUpdateLocation = { city, lat, lng -> viewModel.updateLocation(city, lat, lng) }
                 )
                 AppScreen.STATISTICS -> StatisticsScreen(
                     uiState = uiState,
@@ -317,6 +357,18 @@ fun MainAppContent(viewModel: MainViewModel) {
                 AppScreen.LOCKDOWN -> {
                     // Handled above
                 }
+            }
+
+            if (showProfileDialog) {
+                ProfileDialog(
+                    profile = uiState.profile,
+                    onSignInGoogle = { email, name -> viewModel.signInWithGoogle(email, name) },
+                    onSignOutGoogle = { viewModel.signOutGoogle() },
+                    onBackupToDrive = { viewModel.syncDataToGoogleDrive() },
+                    isSyncingDrive = uiState.isSyncingDrive,
+                    lastDriveBackupTime = uiState.lastDriveBackupTime,
+                    onDismiss = { showProfileDialog = false }
+                )
             }
 
             if (uiState.showJanamazRegistrationDialog) {

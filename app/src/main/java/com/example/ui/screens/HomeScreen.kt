@@ -17,14 +17,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.Mosque
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -43,14 +45,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PrayerType
+import com.example.ui.components.CurrentAndUpcomingPrayerCard
 import com.example.ui.components.GoogleMapsCard
-import com.example.ui.components.GoogleSignInCard
+import com.example.ui.components.HadithCard
 import com.example.ui.components.LocationPickerBar
 import com.example.ui.components.NamazStatisticsDialog
-import com.example.ui.components.NextPrayerCard
 import com.example.ui.components.OverlayPermissionCard
 import com.example.ui.components.PrayerTimeRow
-import com.example.ui.components.RegisteredJanamazCard
 import com.example.ui.viewmodel.MainUiState
 
 @Composable
@@ -60,10 +61,6 @@ fun HomeScreen(
     onPrayerClick: (PrayerType) -> Unit,
     onSyncSearchGrounding: () -> Unit,
     onUpdateLocation: (city: String, lat: Double, lng: Double) -> Unit,
-    onSignInGoogle: (email: String, name: String) -> Unit,
-    onSignOutGoogle: () -> Unit,
-    onBackupToDrive: (() -> Unit)? = null,
-    onOpenJanamazRegistration: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val schedule = uiState.schedule
@@ -90,197 +87,127 @@ fun HomeScreen(
             .testTag("home_screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Display Over Other Apps Permission Card
+        // Overlay Permission Banner if needed
         item {
             Spacer(modifier = Modifier.height(4.dp))
             OverlayPermissionCard()
         }
 
-        // Google Sign-In / Account Card
+        // 1. FIRST: CURRENT NAMAZ AND UPCOMING NAMAZ HERO CARD
         item {
-            GoogleSignInCard(
-                profile = profile,
-                onSignIn = onSignInGoogle,
-                onSignOut = onSignOutGoogle,
-                onBackupToDrive = onBackupToDrive,
-                isSyncingDrive = uiState.isSyncingDrive,
-                lastDriveBackupTime = uiState.lastDriveBackupTime
-            )
-        }
-
-        item {
-            LocationPickerBar(
-                profile = profile,
-                isSyncingSearch = uiState.isSyncingSearch,
-                onSyncSearchGrounding = onSyncSearchGrounding,
-                onUpdateLocation = onUpdateLocation
-            )
-        }
-
-        item {
-            RegisteredJanamazCard(
-                profile = profile,
-                registeredBitmaps = uiState.registeredJanamazBitmaps,
-                onOpenRegistration = onOpenJanamazRegistration
-            )
-        }
-
-        item {
-            NextPrayerCard(
-                nextPrayer = uiState.nextPrayer,
-                formattedTime = uiState.nextPrayerFormattedTime,
-                secondsRemaining = uiState.secondsUntilNextPrayer,
+            CurrentAndUpcomingPrayerCard(
+                schedule = schedule,
+                nextPrayer = nextPrayer,
+                nextPrayerFormattedTime = uiState.nextPrayerFormattedTime,
+                secondsUntilNextPrayer = uiState.secondsUntilNextPrayer,
+                isLockdownActive = uiState.isLockdownActive,
+                currentLockdownPrayer = uiState.currentLockdownPrayer,
+                currentStreak = profile.currentStreak,
                 freeSkipsRemaining = profile.freeSkipsRemaining,
-                currentStreak = profile.currentStreak
+                onOpenLockdown = onOpenActiveLock
             )
         }
 
-        // Active Lock Alert Card if in lock window
-        if (uiState.isLockdownActive) {
-            item {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color(0xFFD32F2F),
-                    modifier = Modifier.fillMaxWidth().testTag("active_lockdown_banner")
-                ) {
+        // 2. SECOND: TODAY'S PRAYER SCHEDULE (12-HOUR FORMAT)
+        item {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("prayer_schedule_card")
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = "LOCKDOWN ACTIVE",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 13.sp
+                                    text = "Today's Prayer Schedule",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Place Janamaz to authorize apps",
-                                    color = Color.White.copy(alpha = 0.9f),
-                                    fontSize = 12.sp
+                                    text = schedule?.sourceDescription ?: "12-Hour Daily Times",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 11.sp
                                 )
                             }
                         }
 
-                        ElevatedButton(
-                            onClick = { onOpenActiveLock(uiState.currentLockdownPrayer ?: nextPrayer) },
-                            colors = ButtonDefaults.elevatedButtonColors(
-                                containerColor = Color.White,
-                                contentColor = Color(0xFFD32F2F)
-                            ),
-                            shape = RoundedCornerShape(10.dp)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                         ) {
-                            Text("Open Lock", fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "12h Format",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
                         }
                     }
-                }
-            }
-        }
 
-        // Google Maps & Exact GPS Location Card
-        item {
-            GoogleMapsCard(
-                profile = profile,
-                onUpdateLocation = onUpdateLocation
-            )
-        }
+                    Spacer(modifier = Modifier.height(12.dp))
 
-        // Today's 5 Prayers Header
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Today's Prayer Schedule",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                    schedule?.prayers?.forEachIndexed { index, prayerItem ->
+                        if (index > 0) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
 
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                ) {
-                    Text(
-                        text = "5 Prayers",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-        }
-
-        // 5 Daily Prayers
-        if (schedule != null) {
-            items(schedule.prayers) { prayerItem ->
-                PrayerTimeRow(
-                    item = prayerItem,
-                    isNextUpcoming = prayerItem.prayerType == uiState.nextPrayer,
-                    onPrayerClick = {
-                        selectedPrayerForStats = prayerItem.prayerType
-                        onPrayerClick(prayerItem.prayerType)
-                    }
-                )
-            }
-        }
-
-        // Daily Hadith / Reflection Card
-        item {
-            Card(
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FormatQuote,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = "Hadith of the Day",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "\"The first matter that the slave will be brought to account for on the Day of Judgment is the prayer. If it is sound, then the rest of his deeds will be sound.\"",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            lineHeight = 18.sp
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "— Sunan al-Tirmidhi",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                        PrayerTimeRow(
+                            item = prayerItem,
+                            isNextUpcoming = prayerItem.prayerType == nextPrayer,
+                            onPrayerClick = { selectedPrayerForStats = prayerItem.prayerType }
                         )
                     }
                 }
             }
+        }
+
+        // 3. THIRD: GPS LOCATION & GOOGLE SEARCH GROUNDING
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                LocationPickerBar(
+                    profile = profile,
+                    isSyncingSearch = uiState.isSyncingSearch,
+                    onSyncSearchGrounding = onSyncSearchGrounding,
+                    onUpdateLocation = onUpdateLocation
+                )
+
+                GoogleMapsCard(
+                    profile = profile,
+                    onUpdateLocation = onUpdateLocation
+                )
+            }
+        }
+
+        // 4. FOURTH: HADITH OF THE DAY
+        item {
+            HadithCard()
         }
 
         item {
