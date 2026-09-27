@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -7,7 +9,9 @@ import android.os.Build
 import android.provider.MediaStore
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -91,13 +95,14 @@ fun LockdownScreen(
     val prayer = uiState.currentLockdownPrayer ?: PrayerType.FAJR
     val freeSkips = uiState.profile.freeSkipsRemaining
     var showSkipConfirmDialog by remember { mutableStateOf(false) }
+    var showCameraPermissionRationale by remember { mutableStateOf(false) }
 
     // Intercept back navigation to maintain active lockdown mode until authorized
     BackHandler(enabled = uiState.isLockdownActive) {
         // Can only exit via verification or skip/payment flow
     }
 
-    // Camera launcher
+    // Camera launcher (takes photo preview)
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
@@ -106,8 +111,42 @@ fun LockdownScreen(
         }
     }
 
-    // Gallery launcher
-    val galleryLauncher = rememberLauncherForActivityResult(
+    // Camera runtime permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            try {
+                cameraLauncher.launch(null)
+            } catch (e: Exception) {
+                // If camera app not present or fails, gracefully open photo picker
+            }
+        } else {
+            showCameraPermissionRationale = true
+        }
+    }
+
+    // Zero-permission Android Photo Picker launcher (Google Play compliant)
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri))
+                } else {
+                    @Suppress("DEPRECATION")
+                    MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+                }
+                onPhotoSelected(bitmap)
+            } catch (e: Exception) {
+                // handle error
+            }
+        }
+    }
+
+    // Fallback gallery launcher for older system images
+    val fallbackGalleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
@@ -122,6 +161,30 @@ fun LockdownScreen(
             } catch (e: Exception) {
                 // handle error
             }
+        }
+    }
+
+    val launchGallery = {
+        try {
+            photoPickerLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        } catch (e: Exception) {
+            fallbackGalleryLauncher.launch("image/*")
+        }
+    }
+
+    val launchCameraSafely = {
+        val permission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+        if (permission == PackageManager.PERMISSION_GRANTED) {
+            try {
+                cameraLauncher.launch(null)
+            } catch (e: Exception) {
+                // If camera fails, fallback to gallery picker
+                launchGallery()
+            }
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
@@ -307,7 +370,7 @@ fun LockdownScreen(
                                     .padding(8.dp)
                             ) {
                                 TextButton(
-                                    onClick = { cameraLauncher.launch(null) }
+                                    onClick = { launchCameraSafely() }
                                 ) {
                                     Text("Retake", color = Color.White, fontSize = 11.sp)
                                 }
@@ -355,7 +418,7 @@ fun LockdownScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Button(
-                            onClick = { cameraLauncher.launch(null) },
+                            onClick = { launchCameraSafely() },
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("camera_capture_button"),
@@ -370,7 +433,7 @@ fun LockdownScreen(
                         }
 
                         OutlinedButton(
-                            onClick = { galleryLauncher.launch("image/*") },
+                            onClick = { launchGallery() },
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("gallery_pick_button"),
@@ -607,6 +670,51 @@ fun LockdownScreen(
             dismissButton = {
                 TextButton(onClick = { showSkipConfirmDialog = false }) {
                     Text("Cancel (Offer Namaz)")
+                }
+            }
+        )
+    }
+
+    // Camera permission rationale dialog
+    if (showCameraPermissionRationale) {
+        AlertDialog(
+            onDismissRequest = { showCameraPermissionRationale = false },
+            title = {
+                Text("Camera Permission Required", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column {
+                    Text(
+                        "Camera permission is required to capture a photo of your Janamaz for AI prayer verification.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Alternatively, you can select an existing photo of your prayer mat from your Gallery without requiring camera access.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCameraPermissionRationale = false
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    },
+                    modifier = Modifier.testTag("grant_camera_permission_button")
+                ) {
+                    Text("Grant Permission")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showCameraPermissionRationale = false
+                        launchGallery()
+                    }
+                ) {
+                    Text("Use Gallery Instead")
                 }
             }
         )
