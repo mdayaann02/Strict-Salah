@@ -2,6 +2,7 @@ package com.example.data.repository
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Base64
 import android.util.Log
 import com.example.data.gemini.GeminiService
@@ -15,9 +16,13 @@ import com.example.data.model.DailySchedule
 import com.example.data.model.PrayerTimeItem
 import com.example.data.model.PrayerType
 import com.example.data.model.VerificationResult
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -162,16 +167,87 @@ class PrayerRepository(
     }
 
     /**
-     * Verifies Janamaz photo with Gemini 3.1 Pro Preview.
+     * Registers photo(s) of the user's authentic Janamaz (prayer mat) taken during onboarding
+     * or updated in settings. Stored locally to allow AI matching during lockdown.
+     */
+    suspend fun registerJanamazPhotos(bitmaps: List<Bitmap>): List<String> = withContext(Dispatchers.IO) {
+        val profile = ensureProfile()
+        val savedPaths = mutableListOf<String>()
+        val existing = profile.registeredJanamazUris.split(",").filter { it.isNotBlank() }
+
+        bitmaps.forEachIndexed { index, bitmap ->
+            try {
+                val file = File(context.filesDir, "janamaz_ref_${System.currentTimeMillis()}_$index.jpg")
+                val os = FileOutputStream(file)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, os)
+                os.flush()
+                os.close()
+                savedPaths.add(file.absolutePath)
+            } catch (e: Exception) {
+                Log.e("PrayerRepository", "Error saving registered Janamaz photo", e)
+            }
+        }
+
+        val allUris = (existing + savedPaths).take(4).joinToString(",")
+        prayerDao.updateProfile(
+            profile.copy(
+                registeredJanamazUris = allUris,
+                isJanamazRegistered = allUris.isNotBlank()
+            )
+        )
+        savedPaths
+    }
+
+    suspend fun removeRegisteredJanamaz(path: String) = withContext(Dispatchers.IO) {
+        val profile = ensureProfile()
+        try {
+            val file = File(path)
+            if (file.exists()) file.delete()
+        } catch (e: Exception) {
+            // Handled
+        }
+        val remaining = profile.registeredJanamazUris.split(",")
+            .filter { it.isNotBlank() && it != path }
+            .joinToString(",")
+        prayerDao.updateProfile(
+            profile.copy(
+                registeredJanamazUris = remaining,
+                isJanamazRegistered = remaining.isNotBlank()
+            )
+        )
+    }
+
+    suspend fun getRegisteredJanamazBitmaps(): List<Bitmap> = withContext(Dispatchers.IO) {
+        val profile = ensureProfile()
+        val paths = profile.registeredJanamazUris.split(",").filter { it.isNotBlank() }
+        val bitmaps = mutableListOf<Bitmap>()
+        for (p in paths) {
+            try {
+                val file = File(p)
+                if (file.exists()) {
+                    val bmp = BitmapFactory.decodeFile(file.absolutePath)
+                    if (bmp != null) bitmaps.add(bmp)
+                }
+            } catch (e: Exception) {
+                Log.e("PrayerRepository", "Error loading registered Janamaz bitmap", e)
+            }
+        }
+        bitmaps
+    }
+
+    /**
+     * Verifies Janamaz photo with Gemini 3.1 Pro Preview and compares it against
+     * the user's previously registered Janamaz reference photo(s).
      */
     suspend fun verifyJanamazPhoto(
         bitmap: Bitmap,
         prayerType: PrayerType
     ): Result<VerificationResult> {
-        val result = geminiService.analyzeJanamazPhoto(bitmap, prayerType.displayName)
+        val refBitmaps = getRegisteredJanamazBitmaps()
+        val result = geminiService.analyzeJanamazPhoto(bitmap, refBitmaps, prayerType.displayName)
         if (result.isSuccess) {
             val verification = result.getOrThrow()
-            if (verification.isJanamaz && verification.confidence >= 65) {
+            if (verification.isJanamaz && verification.confidence >= 60) {
                 // Save log to Room
                 val profile = ensureProfile()
                 val todayStr = getTodayDateString()

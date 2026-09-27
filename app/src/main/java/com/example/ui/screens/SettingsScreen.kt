@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.UserProfileEntity
+import com.example.ui.components.RegisteredJanamazCard
 import com.example.ui.viewmodel.MainUiState
 
 @Composable
@@ -55,6 +56,7 @@ fun SettingsScreen(
     onSaveOffsets: (fajr: Int, dhuhr: Int, asr: Int, maghrib: Int, isha: Int) -> Unit,
     onSaveSettings: (notifEnabled: Boolean, reminderMin: Int, lockMin: Int, appLock: Boolean) -> Unit,
     onTriggerSearchSync: () -> Unit,
+    onOpenJanamazRegistration: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val profile = uiState.profile
@@ -286,6 +288,13 @@ fun SettingsScreen(
             }
         }
 
+        // Registered Janamaz Mat Configuration Card
+        RegisteredJanamazCard(
+            profile = profile,
+            registeredBitmaps = uiState.registeredJanamazBitmaps,
+            onOpenRegistration = onOpenJanamazRegistration
+        )
+
         // App Version Info Card
         Card(
             shape = RoundedCornerShape(18.dp),
@@ -299,14 +308,14 @@ fun SettingsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Strict Namaz v2.0",
+                    text = "Strict Namaz v2.1",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "In-App CameraX • Google Drive Sync • Namaz Statistics",
+                    text = "Registered Janamaz AI Matching • In-App CameraX • Google Drive Sync",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

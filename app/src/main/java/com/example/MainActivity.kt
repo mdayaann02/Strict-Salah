@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.PrayerType
+import com.example.ui.components.JanamazRegistrationDialog
 import com.example.ui.screens.HistoryScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.LockdownScreen
@@ -285,7 +286,8 @@ fun MainAppContent(viewModel: MainViewModel) {
                     onUpdateLocation = { city, lat, lng -> viewModel.updateLocation(city, lat, lng) },
                     onSignInGoogle = { email, name -> viewModel.signInWithGoogle(email, name) },
                     onSignOutGoogle = { viewModel.signOutGoogle() },
-                    onBackupToDrive = { viewModel.syncDataToGoogleDrive() }
+                    onBackupToDrive = { viewModel.syncDataToGoogleDrive() },
+                    onOpenJanamazRegistration = { viewModel.openJanamazRegistration() }
                 )
                 AppScreen.STATISTICS -> StatisticsScreen(
                     uiState = uiState,
@@ -302,11 +304,21 @@ fun MainAppContent(viewModel: MainViewModel) {
                     onSaveSettings = { notif, rem, lock, appLock ->
                         viewModel.updateSettings(notif, rem, lock, appLock)
                     },
-                    onTriggerSearchSync = { viewModel.triggerGoogleSearchSync() }
+                    onTriggerSearchSync = { viewModel.triggerGoogleSearchSync() },
+                    onOpenJanamazRegistration = { viewModel.openJanamazRegistration() }
                 )
                 AppScreen.LOCKDOWN -> {
                     // Handled above
                 }
+            }
+
+            if (uiState.showJanamazRegistrationDialog) {
+                JanamazRegistrationDialog(
+                    existingBitmaps = uiState.registeredJanamazBitmaps,
+                    onSaveJanamazPhotos = { bitmaps -> viewModel.registerJanamazPhotos(bitmaps) },
+                    onDismiss = { viewModel.dismissJanamazRegistration() },
+                    isSaving = uiState.isRegisteringJanamaz
+                )
             }
         }
     }

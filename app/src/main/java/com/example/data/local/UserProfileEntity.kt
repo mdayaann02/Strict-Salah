@@ -29,5 +29,7 @@ data class UserProfileEntity(
     val isGoogleSignedIn: Boolean = false,
     val googleEmail: String = "",
     val googleDisplayName: String = "",
-    val googlePhotoUrl: String = ""
+    val googlePhotoUrl: String = "",
+    val registeredJanamazUris: String = "",
+    val isJanamazRegistered: Boolean = false
 )

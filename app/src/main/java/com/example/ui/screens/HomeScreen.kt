@@ -50,6 +50,7 @@ import com.example.ui.components.NamazStatisticsDialog
 import com.example.ui.components.NextPrayerCard
 import com.example.ui.components.OverlayPermissionCard
 import com.example.ui.components.PrayerTimeRow
+import com.example.ui.components.RegisteredJanamazCard
 import com.example.ui.viewmodel.MainUiState
 
 @Composable
@@ -62,6 +63,7 @@ fun HomeScreen(
     onSignInGoogle: (email: String, name: String) -> Unit,
     onSignOutGoogle: () -> Unit,
     onBackupToDrive: (() -> Unit)? = null,
+    onOpenJanamazRegistration: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val schedule = uiState.schedule
@@ -112,6 +114,14 @@ fun HomeScreen(
                 isSyncingSearch = uiState.isSyncingSearch,
                 onSyncSearchGrounding = onSyncSearchGrounding,
                 onUpdateLocation = onUpdateLocation
+            )
+        }
+
+        item {
+            RegisteredJanamazCard(
+                profile = profile,
+                registeredBitmaps = uiState.registeredJanamazBitmaps,
+                onOpenRegistration = onOpenJanamazRegistration
             )
         }
 

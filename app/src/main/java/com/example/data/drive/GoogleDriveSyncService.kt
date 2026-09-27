@@ -61,7 +61,7 @@ class GoogleDriveSyncService(private val context: Context) {
     ): String = withContext(Dispatchers.Default) {
         val root = JSONObject().apply {
             put("app_name", "Strict Namaz")
-            put("version", "1.3")
+            put("version", "2.1")
             put("exported_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(Date()))
             put("user_email", profile.googleEmail)
             put("user_display_name", profile.googleDisplayName)

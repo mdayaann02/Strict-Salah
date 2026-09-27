@@ -26,5 +26,8 @@ data class VerificationResult(
     val details: String,
     val orientationValid: Boolean = true,
     val cleanSettingDetected: Boolean = true,
+    val isMatchWithRegistered: Boolean = true,
+    val similarityPercentage: Int = 0,
+    val registeredMatCompared: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
 )

@@ -57,7 +57,10 @@ data class MainUiState(
     val snackbarMessage: String? = null,
     val totalPenaltiesCollected: Int = 0,
     val isSyncingDrive: Boolean = false,
-    val lastDriveBackupTime: String? = null
+    val lastDriveBackupTime: String? = null,
+    val showJanamazRegistrationDialog: Boolean = false,
+    val isRegisteringJanamaz: Boolean = false,
+    val registeredJanamazBitmaps: List<Bitmap> = emptyList()
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -80,7 +83,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             launch {
                 repository.userProfile.collectLatest { p ->
                     if (p != null) {
-                        _uiState.update { it.copy(profile = p) }
+                        val refBitmaps = repository.getRegisteredJanamazBitmaps()
+                        _uiState.update {
+                            it.copy(
+                                profile = p,
+                                registeredJanamazBitmaps = refBitmaps
+                            )
+                        }
                         refreshSchedule(p)
                     }
                 }
@@ -451,5 +460,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearSnackbar() {
         _uiState.update { it.copy(snackbarMessage = null) }
+    }
+
+    fun openJanamazRegistration() {
+        _uiState.update { it.copy(showJanamazRegistrationDialog = true) }
+    }
+
+    fun dismissJanamazRegistration() {
+        _uiState.update { it.copy(showJanamazRegistrationDialog = false) }
+    }
+
+    fun registerJanamazPhotos(bitmaps: List<Bitmap>) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRegisteringJanamaz = true) }
+            repository.registerJanamazPhotos(bitmaps)
+            val updated = repository.getRegisteredJanamazBitmaps()
+            _uiState.update {
+                it.copy(
+                    isRegisteringJanamaz = false,
+                    showJanamazRegistrationDialog = false,
+                    registeredJanamazBitmaps = updated,
+                    snackbarMessage = "✅ Successfully saved your Janamaz profile! AI will now verify against this mat."
+                )
+            }
+        }
+    }
+
+    fun removeRegisteredJanamaz(path: String) {
+        viewModelScope.launch {
+            repository.removeRegisteredJanamaz(path)
+            val updated = repository.getRegisteredJanamazBitmaps()
+            _uiState.update {
+                it.copy(
+                    registeredJanamazBitmaps = updated,
+                    snackbarMessage = "Removed Janamaz reference"
+                )
+            }
+        }
     }
 }

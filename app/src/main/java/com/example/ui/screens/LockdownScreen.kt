@@ -400,6 +400,49 @@ fun LockdownScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Reference Janamaz status indicator
+                    if (uiState.registeredJanamazBitmaps.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF1B5E20).copy(alpha = 0.25f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4EE0A8).copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                ) {
+                                    Image(
+                                        bitmap = uiState.registeredJanamazBitmaps.first().asImageBitmap(),
+                                        contentDescription = "Registered Mat",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = "Registered Janamaz Active",
+                                        color = Color(0xFF4EE0A8),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                    Text(
+                                        text = "AI will match your live photo against this registered mat",
+                                        color = Color.White.copy(alpha = 0.75f),
+                                        fontSize = 10.sp
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
                     // Photo preview or Placeholder
                     val photo = uiState.capturedPhoto
                     if (photo != null) {
@@ -551,6 +594,21 @@ fun LockdownScreen(
                                         color = if (result.isJanamaz) Color(0xFF4EE0A8) else Color(0xFFFF8A80),
                                         fontSize = 14.sp
                                     )
+                                    if (result.registeredMatCompared) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = if (result.isMatchWithRegistered) Color(0xFF1B5E20) else Color(0xFFD32F2F)
+                                        ) {
+                                            Text(
+                                                text = "Match: ${result.similarityPercentage}%",
+                                                color = Color.White,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
