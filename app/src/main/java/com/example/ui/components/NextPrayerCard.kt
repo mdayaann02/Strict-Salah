@@ -43,7 +43,6 @@ fun NextPrayerCard(
     secondsRemaining: Long,
     freeSkipsRemaining: Int,
     currentStreak: Int,
-    onTestLockdownClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val prayer = nextPrayer ?: PrayerType.FAJR
@@ -210,27 +209,37 @@ fun NextPrayerCard(
                             )
                         }
 
-                        // Immediate Lock / Test Lock action button
-                        ElevatedButton(
-                            onClick = onTestLockdownClick,
-                            colors = ButtonDefaults.elevatedButtonColors(
-                                containerColor = Color(0xFFD32F2F),
-                                contentColor = Color.White
-                            ),
+                        // Strict Auto-Lock overlay indicator
+                        Surface(
                             shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.testTag("test_lockdown_button")
+                            color = Color(0xFF1E88E5).copy(alpha = 0.25f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF64B5F6).copy(alpha = 0.5f))
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Test Lock",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Shield,
+                                    contentDescription = null,
+                                    tint = Color(0xFF90CAF9),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Column {
+                                    Text(
+                                        text = "Auto Lockdown",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = "Overlay Guard",
+                                        fontSize = 10.sp,
+                                        color = Color(0xFFBBDEFB)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

@@ -1,6 +1,6 @@
 {
-  "name": "Namaz Lock",
-  "description": "Islamic prayer tracker with automated prayer time locking, Janamaz photo AI verification, GPS schedule grounding, and skip enforcement.",
+  "name": "Strict Namaz",
+  "description": "Strict Islamic prayer tracker with automated overlay lockdown, Janamaz photo AI verification, GPS schedule grounding, and skip enforcement.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

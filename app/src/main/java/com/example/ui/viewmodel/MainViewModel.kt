@@ -392,6 +392,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun postSnackbar(message: String) {
+        _uiState.update { it.copy(snackbarMessage = message) }
+    }
+
     fun clearSnackbar() {
         _uiState.update { it.copy(snackbarMessage = null) }
     }

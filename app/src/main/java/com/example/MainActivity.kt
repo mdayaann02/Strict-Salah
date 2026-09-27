@@ -1,9 +1,11 @@
 package com.example
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -108,6 +110,23 @@ fun MainAppContent(viewModel: MainViewModel) {
         }
     }
 
+    // Sudden auto-open when prayer time lockdown triggers
+    LaunchedEffect(uiState.isLockdownActive) {
+        if (uiState.isLockdownActive) {
+            viewModel.setScreen(AppScreen.LOCKDOWN)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(context)) {
+                try {
+                    val intent = Intent(context, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    }
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    // Handled
+                }
+            }
+        }
+    }
+
     LaunchedEffect(uiState.snackbarMessage) {
         uiState.snackbarMessage?.let { msg ->
             snackbarHostState.showSnackbar(msg)
@@ -135,10 +154,10 @@ fun MainAppContent(viewModel: MainViewModel) {
                 title = {
                     Text(
                         text = when (uiState.currentScreen) {
-                            AppScreen.HOME -> "Namaz Lock 🕌"
+                            AppScreen.HOME -> "Strict Namaz 🕌"
                             AppScreen.HISTORY -> "Prayer & Penalty Ledger"
                             AppScreen.SETTINGS -> "Prayer Schedule & Settings"
-                            else -> "Namaz Lock"
+                            else -> "Strict Namaz"
                         },
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
@@ -166,8 +185,11 @@ fun MainAppContent(viewModel: MainViewModel) {
                 NavigationBarItem(
                     selected = uiState.currentScreen == AppScreen.LOCKDOWN,
                     onClick = {
-                        val prayer = uiState.currentLockdownPrayer ?: uiState.nextPrayer ?: PrayerType.FAJR
-                        viewModel.startLockdown(prayer)
+                        if (uiState.isLockdownActive) {
+                            viewModel.setScreen(AppScreen.LOCKDOWN)
+                        } else {
+                            viewModel.postSnackbar("🔒 Auto-Lockdown is armed. It automatically locks your phone when Namaz starts.")
+                        }
                     },
                     icon = {
                         BadgedBox(
@@ -224,8 +246,8 @@ fun MainAppContent(viewModel: MainViewModel) {
             when (uiState.currentScreen) {
                 AppScreen.HOME -> HomeScreen(
                     uiState = uiState,
-                    onTestLockdown = { prayer -> viewModel.startLockdown(prayer) },
-                    onPrayerClick = { prayer -> viewModel.startLockdown(prayer) },
+                    onOpenActiveLock = { prayer -> viewModel.setScreen(AppScreen.LOCKDOWN) },
+                    onPrayerClick = { prayer -> /* information */ },
                     onSyncSearchGrounding = { viewModel.triggerGoogleSearchSync() },
                     onUpdateLocation = { city, lat, lng -> viewModel.updateLocation(city, lat, lng) }
                 )

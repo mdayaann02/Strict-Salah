@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Namaz Lock"
+rootProject.name = "Strict Namaz"
 
 include(":app")

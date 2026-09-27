@@ -39,15 +39,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PrayerType
+import com.example.ui.components.GoogleMapsCard
 import com.example.ui.components.LocationPickerBar
 import com.example.ui.components.NextPrayerCard
+import com.example.ui.components.OverlayPermissionCard
 import com.example.ui.components.PrayerTimeRow
 import com.example.ui.viewmodel.MainUiState
 
 @Composable
 fun HomeScreen(
     uiState: MainUiState,
-    onTestLockdown: (PrayerType) -> Unit,
+    onOpenActiveLock: (PrayerType) -> Unit,
     onPrayerClick: (PrayerType) -> Unit,
     onSyncSearchGrounding: () -> Unit,
     onUpdateLocation: (city: String, lat: Double, lng: Double) -> Unit,
@@ -64,8 +66,13 @@ fun HomeScreen(
             .testTag("home_screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Display Over Other Apps Permission Card
         item {
             Spacer(modifier = Modifier.height(4.dp))
+            OverlayPermissionCard()
+        }
+
+        item {
             LocationPickerBar(
                 profile = profile,
                 isSyncingSearch = uiState.isSyncingSearch,
@@ -80,8 +87,7 @@ fun HomeScreen(
                 formattedTime = uiState.nextPrayerFormattedTime,
                 secondsRemaining = uiState.secondsUntilNextPrayer,
                 freeSkipsRemaining = profile.freeSkipsRemaining,
-                currentStreak = profile.currentStreak,
-                onTestLockdownClick = { onTestLockdown(nextPrayer) }
+                currentStreak = profile.currentStreak
             )
         }
 
@@ -122,7 +128,7 @@ fun HomeScreen(
                         }
 
                         ElevatedButton(
-                            onClick = { onTestLockdown(uiState.currentLockdownPrayer ?: nextPrayer) },
+                            onClick = { onOpenActiveLock(uiState.currentLockdownPrayer ?: nextPrayer) },
                             colors = ButtonDefaults.elevatedButtonColors(
                                 containerColor = Color.White,
                                 contentColor = Color(0xFFD32F2F)
@@ -134,6 +140,14 @@ fun HomeScreen(
                     }
                 }
             }
+        }
+
+        // Google Maps & Exact GPS Location Card
+        item {
+            GoogleMapsCard(
+                profile = profile,
+                onUpdateLocation = onUpdateLocation
+            )
         }
 
         // Today's 5 Prayers Header

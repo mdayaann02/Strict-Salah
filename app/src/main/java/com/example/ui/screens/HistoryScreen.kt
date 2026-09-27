@@ -417,7 +417,7 @@ fun PenaltyTransactionCard(transaction: PenaltyTransactionEntity) {
                 }
 
                 Text(
-                    text = "For ${transaction.prayerName} • ${transaction.paymentApp}",
+                    text = "For ${transaction.prayerName} • ${transaction.paymentApp} • To: 8217317725@superyes",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
