@@ -284,12 +284,14 @@ fun MainAppContent(viewModel: MainViewModel) {
                     onSyncSearchGrounding = { viewModel.triggerGoogleSearchSync() },
                     onUpdateLocation = { city, lat, lng -> viewModel.updateLocation(city, lat, lng) },
                     onSignInGoogle = { email, name -> viewModel.signInWithGoogle(email, name) },
-                    onSignOutGoogle = { viewModel.signOutGoogle() }
+                    onSignOutGoogle = { viewModel.signOutGoogle() },
+                    onBackupToDrive = { viewModel.syncDataToGoogleDrive() }
                 )
                 AppScreen.STATISTICS -> StatisticsScreen(
                     uiState = uiState,
                     onSignInGoogle = { email, name -> viewModel.signInWithGoogle(email, name) },
-                    onSignOutGoogle = { viewModel.signOutGoogle() }
+                    onSignOutGoogle = { viewModel.signOutGoogle() },
+                    onBackupToDrive = { viewModel.syncDataToGoogleDrive() }
                 )
                 AppScreen.HISTORY -> HistoryScreen(uiState = uiState)
                 AppScreen.SETTINGS -> SettingsScreen(

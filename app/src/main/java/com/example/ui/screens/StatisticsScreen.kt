@@ -61,6 +61,7 @@ fun StatisticsScreen(
     uiState: MainUiState,
     onSignInGoogle: (email: String, name: String) -> Unit,
     onSignOutGoogle: () -> Unit,
+    onBackupToDrive: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val profile = uiState.profile
@@ -104,7 +105,10 @@ fun StatisticsScreen(
             GoogleSignInCard(
                 profile = profile,
                 onSignIn = onSignInGoogle,
-                onSignOut = onSignOutGoogle
+                onSignOut = onSignOutGoogle,
+                onBackupToDrive = onBackupToDrive,
+                isSyncingDrive = uiState.isSyncingDrive,
+                lastDriveBackupTime = uiState.lastDriveBackupTime
             )
         }
 

@@ -7,6 +7,9 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.widget.Toast
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -78,6 +81,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PrayerType
+import com.example.ui.components.CameraCaptureView
 import com.example.ui.components.PaymentDialog
 import com.example.ui.viewmodel.MainUiState
 
@@ -106,29 +110,8 @@ fun LockdownScreen(
         ).show()
     }
 
-    // Camera launcher (takes photo preview)
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        if (bitmap != null) {
-            onPhotoSelected(bitmap)
-        }
-    }
-
-    // Camera runtime permission launcher
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            try {
-                cameraLauncher.launch(null)
-            } catch (e: Exception) {
-                // If camera app not present or fails, gracefully open photo picker
-            }
-        } else {
-            showCameraPermissionRationale = true
-        }
-    }
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var showInAppCamera by remember { mutableStateOf(false) }
 
     // Zero-permission Android Photo Picker launcher (Google Play compliant)
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -178,18 +161,87 @@ fun LockdownScreen(
         }
     }
 
+    // Full photo capture using FileProvider URI
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        val uri = photoUri
+        if (success && uri != null) {
+            try {
+                val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri))
+                } else {
+                    @Suppress("DEPRECATION")
+                    MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+                }
+                onPhotoSelected(bitmap)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Could not load photo. Please choose from Gallery.", Toast.LENGTH_SHORT).show()
+                launchGallery()
+            }
+        }
+    }
+
+    // Preview capture fallback
+    val cameraPreviewLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap != null) {
+            onPhotoSelected(bitmap)
+        }
+    }
+
+    val openCameraIntent = {
+        try {
+            val photoFile = File.createTempFile("janamaz_photo_", ".jpg", context.cacheDir)
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
+            photoUri = uri
+            takePictureLauncher.launch(uri)
+        } catch (e: Exception) {
+            try {
+                cameraPreviewLauncher.launch(null)
+            } catch (e2: Exception) {
+                Toast.makeText(context, "Camera app not found. Opening Gallery...", Toast.LENGTH_SHORT).show()
+                launchGallery()
+            }
+        }
+    }
+
+    // Camera runtime permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            showInAppCamera = true
+        } else {
+            showCameraPermissionRationale = true
+        }
+    }
+
     val launchCameraSafely = {
         val permission = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
         if (permission == PackageManager.PERMISSION_GRANTED) {
-            try {
-                cameraLauncher.launch(null)
-            } catch (e: Exception) {
-                // If camera fails, fallback to gallery picker
-                launchGallery()
-            }
+            showInAppCamera = true
         } else {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
+    }
+
+    if (showInAppCamera) {
+        CameraCaptureView(
+            onPhotoCaptured = { bitmap ->
+                showInAppCamera = false
+                onPhotoSelected(bitmap)
+            },
+            onOpenGallery = {
+                showInAppCamera = false
+                launchGallery()
+            },
+            onClose = {
+                showInAppCamera = false
+            }
+        )
+        return
     }
 
     // Pulse animation for lockdown banner

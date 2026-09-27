@@ -14,11 +14,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -115,7 +114,7 @@ fun PrayerTimeRow(
                     }
 
                     Text(
-                        text = "${prayer.rakats} Rak'ahs",
+                        text = "${prayer.rakats} Rak'ahs • Tap for Stats 📊",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp
@@ -123,7 +122,7 @@ fun PrayerTimeRow(
                 }
             }
 
-            // Right side: Scheduled time & Status
+            // Right side: Scheduled time & Status badge
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = item.timeFormatted,
@@ -134,7 +133,7 @@ fun PrayerTimeRow(
 
                 Spacer(modifier = Modifier.size(4.dp))
 
-                // Status Pill
+                // Status Pill (no "Verify" button)
                 when {
                     item.isOfferedToday -> {
                         Surface(
@@ -171,7 +170,7 @@ fun PrayerTimeRow(
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.ReceiptLong,
+                                    imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
                                     contentDescription = "Fine Paid",
                                     tint = Color(0xFFB27B00),
                                     modifier = Modifier.size(12.dp)
@@ -211,13 +210,54 @@ fun PrayerTimeRow(
                             }
                         }
                     }
-                    else -> {
-                        FilledTonalButton(
-                            onClick = onPrayerClick,
+                    isNextUpcoming -> {
+                        Surface(
                             shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.size(height = 28.dp, width = 74.dp)
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                         ) {
-                            Text("Verify", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.BarChart,
+                                    contentDescription = "Stats",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Next Salah",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+                    else -> {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.BarChart,
+                                    contentDescription = "View Stats",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Stats",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
                 }

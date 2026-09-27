@@ -30,6 +30,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +46,7 @@ import com.example.data.model.PrayerType
 import com.example.ui.components.GoogleMapsCard
 import com.example.ui.components.GoogleSignInCard
 import com.example.ui.components.LocationPickerBar
+import com.example.ui.components.NamazStatisticsDialog
 import com.example.ui.components.NextPrayerCard
 import com.example.ui.components.OverlayPermissionCard
 import com.example.ui.components.PrayerTimeRow
@@ -56,11 +61,25 @@ fun HomeScreen(
     onUpdateLocation: (city: String, lat: Double, lng: Double) -> Unit,
     onSignInGoogle: (email: String, name: String) -> Unit,
     onSignOutGoogle: () -> Unit,
+    onBackupToDrive: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val schedule = uiState.schedule
     val profile = uiState.profile
     val nextPrayer = uiState.nextPrayer ?: PrayerType.FAJR
+    var selectedPrayerForStats by remember { mutableStateOf<PrayerType?>(null) }
+
+    selectedPrayerForStats?.let { selectedPrayer ->
+        val scheduledTime = schedule?.prayers?.firstOrNull { it.prayerType == selectedPrayer }?.timeFormatted ?: "--:--"
+        val logsForThisPrayer = uiState.allLogs.filter { it.prayerName.equals(selectedPrayer.name, ignoreCase = true) }
+        NamazStatisticsDialog(
+            prayerType = selectedPrayer,
+            scheduledTimeFormatted = scheduledTime,
+            logsForThisPrayer = logsForThisPrayer,
+            currentStreak = profile.currentStreak,
+            onDismiss = { selectedPrayerForStats = null }
+        )
+    }
 
     LazyColumn(
         modifier = modifier
@@ -80,7 +99,10 @@ fun HomeScreen(
             GoogleSignInCard(
                 profile = profile,
                 onSignIn = onSignInGoogle,
-                onSignOut = onSignOutGoogle
+                onSignOut = onSignOutGoogle,
+                onBackupToDrive = onBackupToDrive,
+                isSyncingDrive = uiState.isSyncingDrive,
+                lastDriveBackupTime = uiState.lastDriveBackupTime
             )
         }
 
@@ -197,7 +219,10 @@ fun HomeScreen(
                 PrayerTimeRow(
                     item = prayerItem,
                     isNextUpcoming = prayerItem.prayerType == uiState.nextPrayer,
-                    onPrayerClick = { onPrayerClick(prayerItem.prayerType) }
+                    onPrayerClick = {
+                        selectedPrayerForStats = prayerItem.prayerType
+                        onPrayerClick(prayerItem.prayerType)
+                    }
                 )
             }
         }

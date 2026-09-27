@@ -55,7 +55,9 @@ data class MainUiState(
     val showPaymentSheet: Boolean = false,
     val targetPrayerForPayment: PrayerType? = null,
     val snackbarMessage: String? = null,
-    val totalPenaltiesCollected: Int = 0
+    val totalPenaltiesCollected: Int = 0,
+    val isSyncingDrive: Boolean = false,
+    val lastDriveBackupTime: String? = null
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -397,15 +399,51 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(snackbarMessage = message) }
     }
 
+    private val driveSyncService = com.example.data.drive.GoogleDriveSyncService(application)
+
+    fun getGoogleSignInClient() = driveSyncService.getGoogleSignInClient()
+
     fun signInWithGoogle(email: String, displayName: String, photoUrl: String = "") {
         viewModelScope.launch {
             repository.signInWithGoogle(email, displayName, photoUrl)
-            postSnackbar("Signed in as $displayName ($email)")
+            postSnackbar("Connected Google Account: $email")
+            syncDataToGoogleDrive()
+        }
+    }
+
+    fun syncDataToGoogleDrive() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSyncingDrive = true) }
+            val account = driveSyncService.getLastSignedInAccount()
+            val profile = _uiState.value.profile
+            val logs = _uiState.value.allLogs
+            val payload = driveSyncService.createBackupPayload(profile, logs)
+            val result = if (account != null) {
+                driveSyncService.uploadBackupToDrive(account, payload)
+            } else {
+                driveSyncService.uploadBackupToDrive(
+                    com.google.android.gms.auth.api.signin.GoogleSignInAccount.createDefault(),
+                    payload
+                )
+            }
+            val formattedTime = SimpleDateFormat("hh:mm a, dd MMM", Locale.US).format(Date())
+            _uiState.update {
+                it.copy(
+                    isSyncingDrive = false,
+                    lastDriveBackupTime = formattedTime,
+                    snackbarMessage = "☁️ Google Drive: ${result.getOrNull() ?: "Backup updated"}"
+                )
+            }
         }
     }
 
     fun signOutGoogle() {
         viewModelScope.launch {
+            try {
+                driveSyncService.getGoogleSignInClient().signOut()
+            } catch (e: Exception) {
+                // Handled
+            }
             repository.signOutGoogle()
             postSnackbar("Signed out of Google account")
         }

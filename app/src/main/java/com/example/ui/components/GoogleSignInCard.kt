@@ -2,6 +2,8 @@ package com.example.ui.components
 
 import android.accounts.AccountManager
 import android.content.Context
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,8 +22,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
@@ -29,9 +32,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -53,12 +58,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.UserProfileEntity
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
 
 @Composable
 fun GoogleSignInCard(
     profile: UserProfileEntity,
     onSignIn: (email: String, displayName: String) -> Unit,
     onSignOut: () -> Unit,
+    onBackupToDrive: (() -> Unit)? = null,
+    isSyncingDrive: Boolean = false,
+    lastDriveBackupTime: String? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -66,6 +78,40 @@ fun GoogleSignInCard(
     var inputEmail by remember { mutableStateOf("") }
     var inputName by remember { mutableStateOf("") }
     val detectedAccounts = remember { mutableStateListOf<String>() }
+
+    // Google Sign-In with Play Services
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            if (account != null && !account.email.isNullOrBlank()) {
+                val email = account.email!!
+                val name = account.displayName ?: email.substringBefore("@")
+                onSignIn(email, name)
+            } else {
+                showSignInDialog = true
+            }
+        } catch (e: Exception) {
+            // If Play Services intent fails or user cancelled, open custom input dialog
+            showSignInDialog = true
+        }
+    }
+
+    val launchOfficialGoogleSignIn = {
+        try {
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .requestProfile()
+                .requestScopes(Scope("https://www.googleapis.com/auth/drive.file"))
+                .build()
+            val client = GoogleSignIn.getClient(context, gso)
+            googleSignInLauncher.launch(client.signInIntent)
+        } catch (e: Exception) {
+            showSignInDialog = true
+        }
+    }
 
     LaunchedEffect(showSignInDialog) {
         if (showSignInDialog) {
@@ -114,15 +160,15 @@ fun GoogleSignInCard(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Connect your Google account to back up your Salah stats, streak, and lockdown ledger across devices.",
+                        text = "Connect your personal Google Account to store all Salah statistics, streaks, and lockdown records in Google Drive.",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    // If device accounts exist, show them as fast-select chips
+                    // If device accounts exist, show quick select chips
                     if (detectedAccounts.isNotEmpty()) {
                         Text(
-                            text = "Detected Device Accounts:",
+                            text = "Detected Accounts on Device:",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -141,7 +187,7 @@ fun GoogleSignInCard(
                                     .clickable {
                                         inputEmail = accEmail
                                         if (inputName.isBlank()) {
-                                            inputName = accEmail.substringBefore("@").replace(".", " ").capitalize()
+                                            inputName = accEmail.substringBefore("@").replace(".", " ")
                                         }
                                     },
                                 color = if (isSelected) Color(0xFF4285F4).copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface
@@ -185,7 +231,7 @@ fun GoogleSignInCard(
                     OutlinedTextField(
                         value = inputEmail,
                         onValueChange = { inputEmail = it },
-                        label = { Text("Your Google Account Email") },
+                        label = { Text("Google Account Email") },
                         placeholder = { Text("e.g. user@gmail.com") },
                         leadingIcon = {
                             Icon(Icons.Default.Email, contentDescription = null)
@@ -213,7 +259,7 @@ fun GoogleSignInCard(
                     ),
                     modifier = Modifier.testTag("confirm_google_signin_button")
                 ) {
-                    Text("Sign In With Account")
+                    Text("Connect Account")
                 }
             },
             dismissButton = {
@@ -238,86 +284,125 @@ fun GoogleSignInCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         if (profile.isGoogleSignedIn) {
-            // Signed In State
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // User Avatar with Initial
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF1B5E20)),
-                    contentAlignment = Alignment.Center
+            // Signed In State with Google Drive Sync options
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = profile.googleDisplayName.trim().take(1).uppercase().ifBlank { "G" },
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
+                    // User Avatar with Initial
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF1B5E20)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = profile.googleDisplayName.trim().take(1).uppercase().ifBlank { "G" },
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = profile.googleDisplayName.ifBlank { "Google User" },
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF4285F4).copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "Google Drive",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1A73E8),
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = profile.googleEmail,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onSignOut,
+                        modifier = Modifier.testTag("google_signout_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Sign Out",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = profile.googleDisplayName.ifBlank { "Google User" },
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = Color(0xFF4285F4).copy(alpha = 0.15f)
-                        ) {
-                            Text(
-                                text = "Google",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1A73E8),
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                // Google Drive Sync Bar
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF1B5E20).copy(alpha = 0.1f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (isSyncingDrive) Icons.Default.CloudSync else Icons.Default.CloudDone,
+                                contentDescription = null,
+                                tint = Color(0xFF2E7D32),
+                                modifier = Modifier.size(16.dp)
                             )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Column {
+                                Text(
+                                    text = if (isSyncingDrive) "Syncing to Google Drive..." else "Google Drive: strict_namaz_backup.json",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2E7D32)
+                                )
+                                Text(
+                                    text = if (lastDriveBackupTime != null) "Last backed up: $lastDriveBackupTime" else "Backed up automatically",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        if (onBackupToDrive != null) {
+                            OutlinedButton(
+                                onClick = onBackupToDrive,
+                                enabled = !isSyncingDrive,
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.testTag("backup_to_drive_button")
+                            ) {
+                                if (isSyncingDrive) {
+                                    CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Icon(imageVector = Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Backup", fontSize = 11.sp)
+                                }
+                            }
                         }
                     }
-                    Text(
-                        text = profile.googleEmail,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.CloudDone,
-                            contentDescription = null,
-                            tint = Color(0xFF2E7D32),
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Cloud Sync Active • Backed up",
-                            fontSize = 10.sp,
-                            color = Color(0xFF2E7D32),
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                IconButton(
-                    onClick = onSignOut,
-                    modifier = Modifier.testTag("google_signout_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Logout,
-                        contentDescription = "Sign Out",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
                 }
             }
         } else {
@@ -354,12 +439,12 @@ fun GoogleSignInCard(
 
                     Column {
                         Text(
-                            text = "Sign In with Google",
+                            text = "Google Drive Sync",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Sync your Salah stats & streak",
+                            text = "Store your Salah stats & streak in Drive",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp
@@ -368,11 +453,7 @@ fun GoogleSignInCard(
                 }
 
                 Button(
-                    onClick = {
-                        inputEmail = ""
-                        inputName = ""
-                        showSignInDialog = true
-                    },
+                    onClick = { launchOfficialGoogleSignIn() },
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
