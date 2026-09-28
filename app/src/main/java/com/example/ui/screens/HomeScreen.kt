@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +18,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mosque
@@ -39,12 +42,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PrayerType
+import com.example.data.qibla.QiblaCalculator
 import com.example.ui.components.CurrentAndUpcomingPrayerCard
 import com.example.ui.components.GoogleMapsCard
 import com.example.ui.components.HadithCard
@@ -53,12 +58,14 @@ import com.example.ui.components.NamazStatisticsDialog
 import com.example.ui.components.OverlayPermissionCard
 import com.example.ui.components.PrayerTimeRow
 import com.example.ui.viewmodel.MainUiState
+import kotlin.math.roundToInt
 
 @Composable
 fun HomeScreen(
     uiState: MainUiState,
     onOpenActiveLock: (PrayerType) -> Unit,
     onPrayerClick: (PrayerType) -> Unit,
+    onOpenQibla: () -> Unit = {},
     onSyncSearchGrounding: () -> Unit,
     onUpdateLocation: (city: String, lat: Double, lng: Double) -> Unit,
     modifier: Modifier = Modifier
@@ -67,6 +74,13 @@ fun HomeScreen(
     val profile = uiState.profile
     val nextPrayer = uiState.nextPrayer ?: PrayerType.FAJR
     var selectedPrayerForStats by remember { mutableStateOf<PrayerType?>(null) }
+
+    val qiblaBearing = remember(profile.latitude, profile.longitude) {
+        QiblaCalculator.calculateQiblaBearing(profile.latitude, profile.longitude)
+    }
+    val cardinal = remember(qiblaBearing) {
+        QiblaCalculator.getCardinalDirection(qiblaBearing)
+    }
 
     selectedPrayerForStats?.let { selectedPrayer ->
         val scheduledTime = schedule?.prayers?.firstOrNull { it.prayerType == selectedPrayer }?.timeFormatted ?: "--:--"
@@ -93,7 +107,7 @@ fun HomeScreen(
             OverlayPermissionCard()
         }
 
-        // 1. FIRST: CURRENT NAMAZ AND UPCOMING NAMAZ HERO CARD
+        // 1. FIRST: CURRENT SALAH AND UPCOMING SALAH HERO CARD
         item {
             CurrentAndUpcomingPrayerCard(
                 schedule = schedule,
@@ -108,7 +122,79 @@ fun HomeScreen(
             )
         }
 
-        // 2. SECOND: TODAY'S PRAYER SCHEDULE (12-HOUR FORMAT)
+        // 2. QUICK QIBLA FINDER BANNER
+        item {
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onOpenQibla() }
+                    .testTag("home_qibla_quick_card")
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Explore,
+                                contentDescription = "Qibla Direction",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Qibla Direction",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFF1B5E20).copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = "${qiblaBearing.roundToInt()}° $cardinal",
+                                        color = Color(0xFF1B5E20),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Align your Janamaz to Holy Kaaba in Makkah",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Icon(
+                        imageVector = Icons.Default.ArrowForward,
+                        contentDescription = "Open Compass",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+
+        // 3. TODAY'S PRAYER SCHEDULE (12-HOUR FORMAT)
         item {
             Card(
                 shape = RoundedCornerShape(20.dp),
@@ -141,7 +227,7 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = "Today's Prayer Schedule",
+                                    text = "Today's Salah Schedule",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -188,7 +274,7 @@ fun HomeScreen(
             }
         }
 
-        // 3. THIRD: GPS LOCATION & GOOGLE SEARCH GROUNDING
+        // 4. GPS LOCATION & GOOGLE SEARCH GROUNDING
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 LocationPickerBar(
@@ -205,7 +291,7 @@ fun HomeScreen(
             }
         }
 
-        // 4. FOURTH: HADITH OF THE DAY
+        // 5. HADITH OF THE DAY
         item {
             HadithCard()
         }

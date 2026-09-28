@@ -1,6 +1,10 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,17 +15,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.BrightnessAuto
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Contrast
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -41,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -52,13 +66,27 @@ import com.example.ui.components.PrayerTimingsManagementCard
 import com.example.ui.components.RegisteredJanamazCard
 import com.example.ui.viewmodel.MainUiState
 
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockPerson
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.ui.platform.LocalContext
+import com.example.notifications.StrictSalahAdminReceiver
+
 @Composable
 fun SettingsScreen(
     uiState: MainUiState,
     onSaveOffsets: (fajr: Int, dhuhr: Int, asr: Int, maghrib: Int, isha: Int) -> Unit,
     onSaveSettings: (notifEnabled: Boolean, reminderMin: Int, lockMin: Int, appLock: Boolean) -> Unit,
+    onSetThemeMode: (String) -> Unit = {},
+    onSetColorPalette: (String) -> Unit = {},
     onTriggerSearchSync: () -> Unit,
     onOpenJanamazRegistration: () -> Unit = {},
+    onOpenDeRegistrationPledge: () -> Unit = {},
     onUpdatePrayerTiming: (PrayerType, String) -> Unit = { _, _ -> },
     onResetPrayerTiming: (PrayerType) -> Unit = {},
     onResetAllPrayerTimings: () -> Unit = {},
@@ -86,7 +114,165 @@ fun SettingsScreen(
             .testTag("settings_screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 12-Hour Prayer Timings & Mosque Schedule Management Card
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // 1. APP THEME & APPEARANCE CUSTOMIZATION CARD
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.fillMaxWidth().testTag("app_theme_settings_card")
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Palette,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "App Theme & Appearance",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Choose your preferred theme mode (including pitch-black AMOLED) and dynamic accent color palette.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Theme Mode Selector (System, Light, Dark, AMOLED)
+                Text(
+                    text = "THEME MODE",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val themeModes = listOf(
+                    Triple("SYSTEM", "System", Icons.Default.BrightnessAuto),
+                    Triple("LIGHT", "Light", Icons.Default.LightMode),
+                    Triple("DARK", "Dark", Icons.Default.DarkMode),
+                    Triple("AMOLED", "AMOLED", Icons.Default.Bedtime)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    themeModes.forEach { (modeKey, label, icon) ->
+                        val isSelected = profile.themeMode.equals(modeKey, ignoreCase = true)
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+                            onClick = { onSetThemeMode(modeKey) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("theme_mode_$modeKey")
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = label,
+                                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Accent Color Palette Selector
+                Text(
+                    text = "ACCENT COLOR PALETTE",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val palettes = listOf(
+                    Triple("EMERALD", "Emerald", Color(0xFF0D5D44)),
+                    Triple("GOLD", "Amber Gold", Color(0xFF825D00)),
+                    Triple("INDIGO", "Indigo", Color(0xFF1E5BB0)),
+                    Triple("CRIMSON", "Crimson", Color(0xFF9E2A2B)),
+                    Triple("DYNAMIC", "Dynamic", Color(0xFF00838F))
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    palettes.forEach { (paletteKey, name, color) ->
+                        val isSelected = profile.colorPalette.equals(paletteKey, ignoreCase = true)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clickable { onSetColorPalette(paletteKey) }
+                                .padding(4.dp)
+                                .testTag("color_palette_$paletteKey")
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .border(
+                                        width = if (isSelected) 3.dp else 1.dp,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = name,
+                                fontSize = 9.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. 12-Hour Prayer Timings & Mosque Schedule Management Card
         PrayerTimingsManagementCard(
             schedule = uiState.schedule,
             profile = profile,
@@ -96,7 +282,7 @@ fun SettingsScreen(
             onToggleUseCustom = onToggleUseCustomTimings
         )
 
-        // Notification Settings Section
+        // 3. Notification Settings Section
         Card(
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -126,9 +312,9 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Prayer Alerts", fontWeight = FontWeight.SemiBold)
+                        Text("Salah Alerts", fontWeight = FontWeight.SemiBold)
                         Text(
-                            "Timely notification before and at Namaz start",
+                            "Timely notification before and at Salah start",
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -177,7 +363,7 @@ fun SettingsScreen(
             }
         }
 
-        // Custom Prayer Timings Offset Section
+        // 4. Custom Prayer Timings Offset Section
         Card(
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -227,7 +413,7 @@ fun SettingsScreen(
             }
         }
 
-        // Google Search Grounding Card
+        // 5. Google Search Grounding Card
         Card(
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -251,7 +437,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Namaz Lock integrates gemini-3.5-flash with googleSearch tool to fetch authentic daily prayer timings for your exact GPS coordinates (${profile.cityName}).",
+                    text = "Strict Salah integrates gemini-3.5-flash with googleSearch tool to fetch authentic daily prayer timings for your exact GPS coordinates (${profile.cityName}).",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 16.sp
@@ -269,7 +455,7 @@ fun SettingsScreen(
             }
         }
 
-        // Leave Namaz & Penalty Rules
+        // 6. Leave Salah & Penalty Rules
         Card(
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
@@ -293,8 +479,8 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "• Every user begins with exactly 10 free chances to leave or skip Namaz.\n" +
-                            "• Once all 10 chances are exhausted, skipping a prayer strictly incurs a penalty fee of ₹10 per namaz.\n" +
+                    text = "• Every user begins with exactly 10 free chances to leave or skip Salah.\n" +
+                            "• Once all 10 chances are exhausted, skipping a prayer strictly incurs a penalty fee of ₹10 per salah.\n" +
                             "• Free Skips Remaining: ${profile.freeSkipsRemaining} / 10\n" +
                             "• Total Fines Paid: ₹${uiState.totalPenaltiesCollected}",
                     fontSize = 12.sp,
@@ -304,14 +490,122 @@ fun SettingsScreen(
             }
         }
 
-        // Registered Janamaz Mat Configuration Card
+        // 7. Registered Janamaz Mat Configuration Card
         RegisteredJanamazCard(
             profile = profile,
             registeredBitmaps = uiState.registeredJanamazBitmaps,
             onOpenRegistration = onOpenJanamazRegistration
         )
 
-        // App Version Info Card
+        // 8. Anti-Close Guard & ₹100 Uninstall Commitment Pledge Card
+        val context = LocalContext.current
+        val adminComponent = remember { ComponentName(context, StrictSalahAdminReceiver::class.java) }
+        val dpm = remember { context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager }
+        val isAdminActive = dpm?.isAdminActive(adminComponent) == true
+
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD32F2F).copy(alpha = 0.25f)),
+            modifier = Modifier.fillMaxWidth().testTag("anti_close_and_uninstall_card")
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Security,
+                        contentDescription = null,
+                        tint = Color(0xFFD32F2F),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Anti-Close & Anti-Uninstall Guard",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "• Active Lockdown Foreground Service prevents closing or swiping the app from recent tasks during prayer times.\n" +
+                            "• Any attempt to clear the app from recents will immediately relaunch Strict Salah until Janamaz is verified.\n" +
+                            "• Uninstalling or quitting the strict enforcement requires settling the ₹100 exit commitment pledge via UPI.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 16.sp
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Device Admin Protection Toggle / Setup
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Device Admin Anti-Tamper",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                            Text(
+                                text = if (isAdminActive) "🛡️ Device Admin Active (Blocks casual uninstallation)" else "Enable Device Admin to strictly prevent uninstall bypass",
+                                fontSize = 10.sp,
+                                color = if (isAdminActive) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (!isAdminActive) {
+                            OutlinedButton(
+                                onClick = {
+                                    val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                                        putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
+                                        putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Strict Salah requires Device Admin to enforce active prayer lockdowns.")
+                                    }
+                                    context.startActivity(intent)
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.testTag("enable_device_admin_button")
+                            ) {
+                                Text("Enable", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // ₹100 Uninstall / Exit Pledge Settlement Button
+                Button(
+                    onClick = onOpenDeRegistrationPledge,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFD32F2F)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().testTag("open_deregistration_pledge_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LockPerson,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Settle ₹100 Pledge to Uninstall / De-register",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+
+        // 9. App Version Info Card
         Card(
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
@@ -324,14 +618,14 @@ fun SettingsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Strict Namaz v2.1",
+                    text = "Strict Salah v2.4",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Registered Janamaz AI Matching • In-App CameraX • Google Drive Sync",
+                    text = "Qibla Direction Finder • AMOLED Theme • AI Janamaz Verification • Google Drive",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
@@ -59,11 +60,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.data.model.PrayerType
+import com.example.ui.components.DeRegistrationPledgeDialog
 import com.example.ui.components.JanamazRegistrationDialog
 import com.example.ui.components.ProfileDialog
 import com.example.ui.screens.HistoryScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.LockdownScreen
+import com.example.ui.screens.QiblaScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.StatisticsScreen
 import com.example.ui.theme.MyApplicationTheme
@@ -84,14 +87,14 @@ class MainActivity : ComponentActivity() {
         }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Strict back-press prevention: Never allow exiting during Namaz lockdown
+        // Strict back-press prevention: Never allow exiting during Salah lockdown
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 val state = viewModel.uiState.value
                 if (state.isLockdownActive || state.currentScreen == AppScreen.LOCKDOWN) {
                     Toast.makeText(
                         this@MainActivity,
-                        "🔒 Strict Namaz: Cannot exit or go back during lockdown! Verify your Janamaz or pay penalty to unlock.",
+                        "🔒 Strict Salah: Cannot exit or go back during lockdown! Verify your Janamaz or pay penalty to unlock.",
                         Toast.LENGTH_LONG
                     ).show()
                 } else if (state.currentScreen != AppScreen.HOME) {
@@ -99,7 +102,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     Toast.makeText(
                         this@MainActivity,
-                        "Strict Namaz is actively guarding your prayer times.",
+                        "Strict Salah is actively guarding your prayer times.",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -110,7 +113,11 @@ class MainActivity : ComponentActivity() {
         intent?.let { handleIntent(it) }
 
         setContent {
-            MyApplicationTheme {
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            MyApplicationTheme(
+                themeMode = uiState.profile.themeMode,
+                colorPalette = uiState.profile.colorPalette
+            ) {
                 MainAppContent(viewModel = viewModel)
             }
         }
@@ -125,7 +132,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        // If user tries to press Home button or switch apps while lockdown is active, pull Strict Namaz right back
+        // If user tries to press Home button or switch apps while lockdown is active, pull Strict Salah right back
         if (viewModel.uiState.value.isLockdownActive) {
             val intent = Intent(this, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -236,11 +243,12 @@ fun MainAppContent(viewModel: MainViewModel) {
                 title = {
                     Text(
                         text = when (uiState.currentScreen) {
-                            AppScreen.HOME -> "Strict Namaz 🕌"
+                            AppScreen.HOME -> "Strict Salah 🕌"
+                            AppScreen.QIBLA -> "Qibla Direction 🧭"
                             AppScreen.STATISTICS -> "Salah Statistics 📊"
-                            AppScreen.HISTORY -> "Prayer Ledger"
-                            AppScreen.SETTINGS -> "Prayer Schedule & Settings"
-                            else -> "Strict Namaz"
+                            AppScreen.HISTORY -> "Salah Ledger"
+                            AppScreen.SETTINGS -> "Salah Schedule & Settings"
+                            else -> "Strict Salah"
                         },
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
@@ -290,10 +298,18 @@ fun MainAppContent(viewModel: MainViewModel) {
                 )
 
                 NavigationBarItem(
+                    selected = uiState.currentScreen == AppScreen.QIBLA,
+                    onClick = { viewModel.setScreen(AppScreen.QIBLA) },
+                    icon = { Icon(Icons.Default.Explore, contentDescription = "Qibla") },
+                    label = { Text("Qibla", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
+                    modifier = Modifier.testTag("nav_qibla")
+                )
+
+                NavigationBarItem(
                     selected = uiState.currentScreen == AppScreen.STATISTICS,
                     onClick = { viewModel.setScreen(AppScreen.STATISTICS) },
                     icon = { Icon(Icons.Default.BarChart, contentDescription = "Statistics") },
-                    label = { Text("Statistics", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
+                    label = { Text("Stats", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
                     modifier = Modifier.testTag("nav_statistics")
                 )
 
@@ -326,8 +342,13 @@ fun MainAppContent(viewModel: MainViewModel) {
                     uiState = uiState,
                     onOpenActiveLock = { prayer -> viewModel.setScreen(AppScreen.LOCKDOWN) },
                     onPrayerClick = { prayer -> /* information */ },
+                    onOpenQibla = { viewModel.setScreen(AppScreen.QIBLA) },
                     onSyncSearchGrounding = { viewModel.triggerGoogleSearchSync() },
                     onUpdateLocation = { city, lat, lng -> viewModel.updateLocation(city, lat, lng) }
+                )
+                AppScreen.QIBLA -> QiblaScreen(
+                    uiState = uiState,
+                    onRefreshLocation = { viewModel.triggerGoogleSearchSync() }
                 )
                 AppScreen.STATISTICS -> StatisticsScreen(
                     uiState = uiState,
@@ -344,11 +365,13 @@ fun MainAppContent(viewModel: MainViewModel) {
                     onSaveSettings = { notif, rem, lock, appLock ->
                         viewModel.updateSettings(notif, rem, lock, appLock)
                     },
+                    onSetThemeMode = { mode -> viewModel.setThemeMode(mode) },
+                    onSetColorPalette = { palette -> viewModel.setColorPalette(palette) },
                     onTriggerSearchSync = { viewModel.triggerGoogleSearchSync() },
                     onOpenJanamazRegistration = { viewModel.openJanamazRegistration() },
+                    onOpenDeRegistrationPledge = { viewModel.openDeRegistrationDialog() },
                     onUpdatePrayerTiming = { prayer, time24 -> viewModel.updateCustomPrayerTiming(prayer, time24) },
                     onResetPrayerTiming = { prayer ->
-                        // Reset single prayer timing
                         viewModel.updateCustomPrayerTiming(prayer, "")
                     },
                     onResetAllPrayerTimings = { viewModel.resetPrayerTimingsToDefault() },
@@ -377,6 +400,16 @@ fun MainAppContent(viewModel: MainViewModel) {
                     onSaveJanamazPhotos = { bitmaps -> viewModel.registerJanamazPhotos(bitmaps) },
                     onDismiss = { viewModel.dismissJanamazRegistration() },
                     isSaving = uiState.isRegisteringJanamaz
+                )
+            }
+
+            if (uiState.showDeRegistrationDialog) {
+                DeRegistrationPledgeDialog(
+                    isProcessing = uiState.isAnalyzing,
+                    onDismiss = { viewModel.dismissDeRegistrationDialog() },
+                    onConfirmPledgePayment = { app, upiRef ->
+                        viewModel.processDeRegistrationPledgePayment(app, upiRef)
+                    }
                 )
             }
         }

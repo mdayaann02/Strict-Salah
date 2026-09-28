@@ -35,7 +35,7 @@ class GoogleDriveSyncService(private val context: Context) {
 
     companion object {
         const val DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file"
-        const val BACKUP_FILE_NAME = "strict_namaz_backup.json"
+        const val BACKUP_FILE_NAME = "strict_salah_backup.json"
     }
 
     fun getGoogleSignInClient(): GoogleSignInClient {
@@ -60,8 +60,8 @@ class GoogleDriveSyncService(private val context: Context) {
         logs: List<PrayerLogEntity>
     ): String = withContext(Dispatchers.Default) {
         val root = JSONObject().apply {
-            put("app_name", "Strict Namaz")
-            put("version", "2.1")
+            put("app_name", "Strict Salah")
+            put("version", "2.4")
             put("exported_at", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(Date()))
             put("user_email", profile.googleEmail)
             put("user_display_name", profile.googleDisplayName)
@@ -160,7 +160,7 @@ class GoogleDriveSyncService(private val context: Context) {
                 val metadata = JSONObject().apply {
                     put("name", BACKUP_FILE_NAME)
                     put("mimeType", "application/json")
-                    put("description", "Strict Namaz Salah statistics, streak, and lockdown ledger")
+                    put("description", "Strict Salah statistics, streak, and lockdown ledger")
                 }
 
                 val multipartBody = MultipartBody.Builder()

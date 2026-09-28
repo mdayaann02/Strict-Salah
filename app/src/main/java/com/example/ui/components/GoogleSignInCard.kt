@@ -373,7 +373,7 @@ fun GoogleSignInCard(
                             Spacer(modifier = Modifier.width(6.dp))
                             Column {
                                 Text(
-                                    text = if (isSyncingDrive) "Syncing to Google Drive..." else "Google Drive: strict_namaz_backup.json",
+                                    text = if (isSyncingDrive) "Syncing to Google Drive..." else "Google Drive: strict_salah_backup.json",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF2E7D32)

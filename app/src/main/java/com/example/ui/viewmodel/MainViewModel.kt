@@ -11,6 +11,7 @@ import com.example.data.model.DailySchedule
 import com.example.data.model.PrayerType
 import com.example.data.model.VerificationResult
 import com.example.data.repository.PrayerRepository
+import com.example.notifications.LockdownForegroundService
 import com.example.notifications.PrayerNotificationHelper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -28,6 +29,7 @@ import java.util.Locale
 
 enum class AppScreen {
     HOME,
+    QIBLA,
     STATISTICS,
     LOCKDOWN,
     HISTORY,
@@ -54,6 +56,7 @@ data class MainUiState(
     val searchSyncStatus: String? = null,
     val showPaymentSheet: Boolean = false,
     val targetPrayerForPayment: PrayerType? = null,
+    val showDeRegistrationDialog: Boolean = false,
     val snackbarMessage: String? = null,
     val totalPenaltiesCollected: Int = 0,
     val isSyncingDrive: Boolean = false,
@@ -174,9 +177,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Auto trigger lockdown notification if active and not already locked
+        // Auto trigger lockdown notification and foreground service if active and not already locked
         if (shouldLockPrayer != null && !_uiState.value.isLockdownActive) {
             PrayerNotificationHelper.showLockdownActiveNotification(getApplication(), shouldLockPrayer)
+            LockdownForegroundService.startService(getApplication(), shouldLockPrayer.displayName)
         }
 
         _uiState.update { state ->
@@ -212,10 +216,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
         PrayerNotificationHelper.showLockdownActiveNotification(getApplication(), prayerType)
+        LockdownForegroundService.startService(getApplication(), prayerType.displayName)
     }
 
     fun dismissLockdown() {
         PrayerNotificationHelper.clearLockdownNotification(getApplication())
+        LockdownForegroundService.stopService(getApplication())
         _uiState.update {
             it.copy(
                 currentLockdownPrayer = null,
@@ -517,6 +523,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.setUseCustomTimings(enabled)
             postSnackbar(if (enabled) "Switched to custom mosque timings" else "Switched to calculated GPS default timings")
+        }
+    }
+
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch {
+            repository.updateTheme(themeMode = mode, colorPalette = _uiState.value.profile.colorPalette)
+            postSnackbar("Theme set to ${mode.lowercase().replaceFirstChar { it.uppercase() }}")
+        }
+    }
+
+    fun setColorPalette(palette: String) {
+        viewModelScope.launch {
+            repository.updateTheme(themeMode = _uiState.value.profile.themeMode, colorPalette = palette)
+            postSnackbar("Color theme set to ${palette.lowercase().replaceFirstChar { it.uppercase() }}")
+        }
+    }
+
+    fun openDeRegistrationDialog() {
+        _uiState.update { it.copy(showDeRegistrationDialog = true) }
+    }
+
+    fun dismissDeRegistrationDialog() {
+        _uiState.update { it.copy(showDeRegistrationDialog = false) }
+    }
+
+    fun processDeRegistrationPledgePayment(paymentApp: String, upiRef: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAnalyzing = true, analysisStatusText = "Settling ₹100 Uninstall/Exit Pledge...") }
+            delay(1200)
+            val res = repository.payDeRegistrationPledge(paymentApp, upiRef)
+            _uiState.update { it.copy(isAnalyzing = false, showDeRegistrationDialog = false) }
+            if (res.isSuccess) {
+                dismissLockdown()
+                postSnackbar("✅ ₹100 Exit Pledge Confirmed (${res.getOrThrow().upiRefId}). App de-registered.")
+            } else {
+                postSnackbar("Failed to confirm pledge. Please retry.")
+            }
         }
     }
 }

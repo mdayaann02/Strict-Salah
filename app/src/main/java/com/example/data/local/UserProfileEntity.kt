@@ -37,5 +37,7 @@ data class UserProfileEntity(
     val customAsrTime: String = "",
     val customMaghribTime: String = "",
     val customIshaTime: String = "",
-    val useCustomTimings: Boolean = false
+    val useCustomTimings: Boolean = false,
+    val themeMode: String = "SYSTEM", // "SYSTEM", "LIGHT", "DARK", "AMOLED"
+    val colorPalette: String = "EMERALD" // "EMERALD", "GOLD", "INDIGO", "CRIMSON", "DYNAMIC"
 )

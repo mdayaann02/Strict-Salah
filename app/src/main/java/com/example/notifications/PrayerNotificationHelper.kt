@@ -14,15 +14,15 @@ import com.example.data.model.PrayerType
 
 object PrayerNotificationHelper {
 
-    private const val CHANNEL_ID = "namaz_prayer_reminders"
-    private const val CHANNEL_NAME = "Namaz Prayer Reminders & Lock"
+    private const val CHANNEL_ID = "salah_prayer_reminders"
+    private const val CHANNEL_NAME = "Salah Prayer Reminders & Lock"
     private const val NOTIFICATION_ID_BASE = 5000
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance).apply {
-                description = "Timely reminders and lockdown notifications for Islamic prayers"
+                description = "Timely reminders and lockdown notifications for Islamic Salah prayers"
                 enableVibration(true)
             }
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -81,7 +81,7 @@ object PrayerNotificationHelper {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_lock)
-            .setContentTitle("🚨 Namaz Lockdown: ${prayerType.displayName} Time!")
+            .setContentTitle("🚨 Salah Lockdown: ${prayerType.displayName} Time!")
             .setContentText("Apps locked. Lay down your Janamaz and snap a photo to verify.")
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_MAX)

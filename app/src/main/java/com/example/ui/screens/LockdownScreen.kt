@@ -288,7 +288,7 @@ fun LockdownScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "NAMAZ TIME HAS STARTED",
+                            text = "SALAH TIME HAS STARTED",
                             color = Color.White,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.ExtraBold,
@@ -659,7 +659,7 @@ fun LockdownScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Skip / Leave Namaz Penalty Section
+            // Skip / Leave Salah Penalty Section
             Surface(
                 shape = RoundedCornerShape(18.dp),
                 color = Color(0xFF141F1A),
@@ -680,7 +680,7 @@ fun LockdownScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Leave Namaz Policy",
+                                text = "Leave Salah Policy",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
@@ -705,7 +705,7 @@ fun LockdownScreen(
 
                     Text(
                         text = if (freeSkips > 0)
-                            "Each user is given strictly 10 free chances to leave Namaz. Skipping now will consume 1 chance ($freeSkips remaining)."
+                            "Each user is given strictly 10 free chances to leave Salah. Skipping now will consume 1 chance ($freeSkips remaining)."
                         else
                             "All 10 free chances have been consumed! You must pay a penalty fine of ₹10 via UPI to unlock without praying.",
                         color = Color(0xFF9EA9A1),
@@ -738,7 +738,7 @@ fun LockdownScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (freeSkips > 0) "Leave Namaz (Deduct 1 Free Chance)" else "Pay ₹10 Penalty to Unlock",
+                            text = if (freeSkips > 0) "Leave Salah (Deduct 1 Free Chance)" else "Pay ₹10 Penalty to Unlock",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
                         )
@@ -753,7 +753,7 @@ fun LockdownScreen(
         AlertDialog(
             onDismissRequest = { showSkipConfirmDialog = false },
             title = {
-                Text("Confirm Leaving Namaz?", fontWeight = FontWeight.Bold)
+                Text("Confirm Leaving Salah?", fontWeight = FontWeight.Bold)
             },
             text = {
                 Column {
@@ -763,7 +763,7 @@ fun LockdownScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "This will use 1 of your remaining $freeSkips free chances. Once exhausted, each skipped namaz requires a payment of ₹10.",
+                        "This will use 1 of your remaining $freeSkips free chances. Once exhausted, each skipped salah requires a payment of ₹10.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -783,7 +783,7 @@ fun LockdownScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showSkipConfirmDialog = false }) {
-                    Text("Cancel (Offer Namaz)")
+                    Text("Cancel (Offer Salah)")
                 }
             }
         )

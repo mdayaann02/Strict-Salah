@@ -2,6 +2,7 @@ package com.example
 
 import com.example.data.gemini.PrayerCalculationHelper
 import com.example.data.model.PrayerType
+import com.example.data.qibla.QiblaCalculator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -35,6 +36,20 @@ class ExampleUnitTest {
         assertEquals(PrayerType.ASR, PrayerType.fromId("asr"))
         assertEquals(PrayerType.MAGHRIB, PrayerType.fromId("maghrib"))
         assertEquals(PrayerType.ISHA, PrayerType.fromId("isha"))
+    }
+
+    @Test
+    fun testQiblaBearingCalculation() {
+        // Mumbai coordinates to Makkah: approximately 285° - 295° (WNW)
+        val bearing = QiblaCalculator.calculateQiblaBearing(19.0760, 72.8777)
+        assertTrue("Qibla bearing for Mumbai should be between 280° and 300°", bearing in 280.0..300.0)
+
+        // Distance from Mumbai to Kaaba: ~3,400 to ~3,600 km
+        val distance = QiblaCalculator.calculateDistanceToKaabaKm(19.0760, 72.8777)
+        assertTrue("Distance should be around 3400-3600 km", distance in 3300.0..3700.0)
+
+        val cardinal = QiblaCalculator.getCardinalDirection(bearing)
+        assertTrue(cardinal == "W" || cardinal == "NW")
     }
 
     @Test

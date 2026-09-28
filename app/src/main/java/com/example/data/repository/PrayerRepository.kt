@@ -431,6 +431,37 @@ class PrayerRepository(
         return Result.success(transaction.copy(id = txId))
     }
 
+    /**
+     * Records the ₹100 uninstallation/quit commitment pledge payment.
+     */
+    suspend fun payDeRegistrationPledge(
+        paymentApp: String,
+        upiId: String
+    ): Result<PenaltyTransactionEntity> {
+        val profile = ensureProfile()
+        val todayStr = getTodayDateString()
+        val refId = "PLEDGE-" + UUID.randomUUID().toString().take(10).uppercase()
+
+        val transaction = PenaltyTransactionEntity(
+            date = todayStr,
+            prayerName = "Uninstall/De-registration Pledge",
+            amount = 100,
+            upiRefId = refId,
+            paymentApp = paymentApp,
+            paymentStatus = "SUCCESS",
+            remarks = "₹100 exit pledge settled ($upiId via $paymentApp)"
+        )
+        val txId = prayerDao.insertTransaction(transaction)
+
+        prayerDao.updateProfile(
+            profile.copy(
+                totalPenaltiesPaid = profile.totalPenaltiesPaid + 100
+            )
+        )
+
+        return Result.success(transaction.copy(id = txId))
+    }
+
     suspend fun updateLocation(cityName: String, lat: Double, lng: Double) {
         val profile = ensureProfile()
         prayerDao.updateProfile(
@@ -458,6 +489,16 @@ class PrayerRepository(
                 asrOffsetMinutes = asr,
                 maghribOffsetMinutes = maghrib,
                 ishaOffsetMinutes = isha
+            )
+        )
+    }
+
+    suspend fun updateTheme(themeMode: String, colorPalette: String) {
+        val profile = ensureProfile()
+        prayerDao.updateProfile(
+            profile.copy(
+                themeMode = themeMode,
+                colorPalette = colorPalette
             )
         )
     }

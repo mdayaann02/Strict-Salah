@@ -179,7 +179,7 @@ fun HadithCard(
 
                         IconButton(
                             onClick = {
-                                val sendText = "\"${currentHadith.quote}\"\n\n— ${currentHadith.source}\n\nShared from Strict Namaz App"
+                                val sendText = "\"${currentHadith.quote}\"\n\n— ${currentHadith.source}\n\nShared from Strict Salah App"
                                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/plain"
                                     putExtra(Intent.EXTRA_TEXT, sendText)

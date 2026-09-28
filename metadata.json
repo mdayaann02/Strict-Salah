@@ -1,6 +1,6 @@
 {
-  "name": "Strict Namaz",
-  "description": "Strict Islamic prayer tracker with automated overlay lockdown, Janamaz photo AI verification, GPS schedule grounding, and skip enforcement.",
+  "name": "Strict Salah",
+  "description": "Strict Islamic prayer and Salah tracker with automated overlay lockdown, Janamaz photo AI verification, accurate Qibla compass, GPS schedule grounding, and dynamic themes.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
