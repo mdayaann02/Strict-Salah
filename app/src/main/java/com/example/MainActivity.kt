@@ -408,7 +408,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 if (showProfileDialog) {
                     ProfileDialog(
                         profile = uiState.profile,
-                        onSignInGoogle = { email, name -> viewModel.signInWithGoogle(email, name) },
+                        onSignInGoogle = { email, name, photoUrl -> viewModel.signInWithGoogle(email, name, photoUrl) },
                         onSignOutGoogle = { viewModel.signOutGoogle() },
                         onBackupToDrive = { viewModel.syncDataToGoogleDrive() },
                         isSyncingDrive = uiState.isSyncingDrive,
