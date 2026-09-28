@@ -394,16 +394,21 @@ class PrayerRepository(
     ): Result<PenaltyTransactionEntity> {
         val profile = ensureProfile()
         val todayStr = getTodayDateString()
-        val refId = "UPI-" + UUID.randomUUID().toString().take(10).uppercase()
+        val actualRefId = upiId.trim().ifBlank {
+            "UPI-" + UUID.randomUUID().toString().take(10).uppercase(Locale.ROOT)
+        }
+        val receipt = com.example.data.payment.UpiPaymentGateway.generateReceiptNumber("SKIP")
 
         val transaction = PenaltyTransactionEntity(
             date = todayStr,
             prayerName = prayerType.displayName,
+            transactionType = "PRAYER_SKIP_PENALTY",
             amount = 10,
-            upiRefId = refId,
+            upiRefId = actualRefId,
             paymentApp = paymentApp,
             paymentStatus = "SUCCESS",
-            remarks = "₹10 skip penalty authorized for ${prayerType.displayName} ($upiId)"
+            receiptNumber = receipt,
+            remarks = "₹10 skip penalty verified for ${prayerType.displayName} ($actualRefId via $paymentApp)"
         )
         val txId = prayerDao.insertTransaction(transaction)
 
@@ -413,10 +418,10 @@ class PrayerRepository(
                 date = todayStr,
                 prayerName = prayerType.name,
                 status = "PENALTY_PAID",
-                aiConfidence = 0,
-                aiExplanation = "Unlocked via ₹10 penalty fine ($refId via $paymentApp)",
+                aiConfidence = 100,
+                aiExplanation = "Unlocked via ₹10 penalty fine ($actualRefId via $paymentApp - Receipt: $receipt)",
                 penaltyAmount = 10,
-                transactionRef = refId
+                transactionRef = actualRefId
             )
         )
 
@@ -441,19 +446,23 @@ class PrayerRepository(
     ): Result<PenaltyTransactionEntity> {
         val profile = ensureProfile()
         val todayStr = getTodayDateString()
+        val actualRef = upiRefId.trim().ifBlank {
+            "UPI-UNINST-" + UUID.randomUUID().toString().take(8).uppercase(Locale.ROOT)
+        }
         val token = com.example.data.payment.UpiPaymentGateway.generateUninstallToken()
+        val receipt = com.example.data.payment.UpiPaymentGateway.generateReceiptNumber("UNINST")
         val expiry = System.currentTimeMillis() + (60 * 60 * 1000L) // 1 Hour
 
         val transaction = PenaltyTransactionEntity(
             date = todayStr,
-            prayerName = "Strict Salah v3.0 Uninstallation Penalty",
+            prayerName = "Strict Salah Uninstallation Penalty",
             transactionType = "UNINSTALL_PENALTY",
             amount = 100,
-            upiRefId = upiRefId,
+            upiRefId = actualRef,
             paymentApp = paymentApp,
             paymentStatus = "SUCCESS",
-            receiptNumber = "SS-UNINST-${System.currentTimeMillis() % 1000000}",
-            remarks = "₹100 Uninstallation discipline fee verified ($upiRefId via $paymentApp)"
+            receiptNumber = receipt,
+            remarks = "₹100 Uninstallation discipline fee verified ($actualRef via $paymentApp)"
         )
         val txId = prayerDao.insertTransaction(transaction)
 

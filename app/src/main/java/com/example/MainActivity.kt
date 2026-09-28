@@ -186,20 +186,10 @@ fun MainAppScreen(viewModel: MainViewModel) {
         }
     }
 
-    // Sudden auto-open when prayer time lockdown triggers
+    // Seamless switch to Lockdown when prayer time lockdown triggers
     LaunchedEffect(uiState.isLockdownActive) {
         if (uiState.isLockdownActive) {
             viewModel.setScreen(AppScreen.LOCKDOWN)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(context)) {
-                try {
-                    val intent = Intent(context, MainActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                    }
-                    context.startActivity(intent)
-                } catch (e: Exception) {
-                    // Handled
-                }
-            }
         }
     }
 

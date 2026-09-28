@@ -7,11 +7,11 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.example.MainActivity
-import com.example.R
 
 /**
  * High-priority Foreground Service guarding active Salah lockdown.
@@ -28,22 +28,30 @@ class LockdownForegroundService : Service() {
         const val EXTRA_PRAYER_NAME = "EXTRA_PRAYER_NAME"
 
         fun startService(context: Context, prayerName: String = "Salah") {
-            val intent = Intent(context, LockdownForegroundService::class.java).apply {
-                action = ACTION_START_LOCKDOWN
-                putExtra(EXTRA_PRAYER_NAME, prayerName)
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            try {
+                val intent = Intent(context, LockdownForegroundService::class.java).apply {
+                    action = ACTION_START_LOCKDOWN
+                    putExtra(EXTRA_PRAYER_NAME, prayerName)
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (e: Exception) {
+                // Ignore foreground service start restrictions
             }
         }
 
         fun stopService(context: Context) {
-            val intent = Intent(context, LockdownForegroundService::class.java).apply {
-                action = ACTION_STOP_LOCKDOWN
+            try {
+                val intent = Intent(context, LockdownForegroundService::class.java).apply {
+                    action = ACTION_STOP_LOCKDOWN
+                }
+                context.stopService(intent)
+            } catch (e: Exception) {
+                // Handled
             }
-            context.stopService(intent)
         }
     }
 
@@ -58,14 +66,34 @@ class LockdownForegroundService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP_LOCKDOWN) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
+            try {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } catch (e: Exception) {
+                // Handled
+            }
             stopSelf()
             return START_NOT_STICKY
         }
 
         activePrayer = intent?.getStringExtra(EXTRA_PRAYER_NAME) ?: "Salah"
-        val notification = buildLockdownNotification(activePrayer)
-        startForeground(NOTIFICATION_ID, notification)
+        try {
+            val notification = buildLockdownNotification(activePrayer)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                    } else {
+                        0
+                    }
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            // Safe fallback
+        }
 
         return START_STICKY
     }
@@ -104,8 +132,12 @@ class LockdownForegroundService : Service() {
         }
 
         // Post high-priority notification to pull back
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(NOTIFICATION_ID, buildLockdownNotification(activePrayer))
+        try {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.notify(NOTIFICATION_ID, buildLockdownNotification(activePrayer))
+        } catch (e: Exception) {
+            // Handled
+        }
     }
 
     private fun createNotificationChannel() {

@@ -151,6 +151,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         var nextTimeStr = ""
         var shouldLockPrayer: PrayerType? = null
 
+        val isAppLockEnabled = _uiState.value.profile.isAppLockServiceEnabled
         val lockWindowMinutes = _uiState.value.profile.lockdownDurationMinutes
 
         for (item in schedule.prayers) {
@@ -159,7 +160,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             // Check if prayer is currently active (within lock window and not yet verified)
             val diffFromPrayerStart = currentMinutes - prayerMinutes
-            if (diffFromPrayerStart in 0 until lockWindowMinutes) {
+            if (isAppLockEnabled && diffFromPrayerStart in 0 until lockWindowMinutes) {
                 // If not already offered or skipped, lockdown should trigger!
                 if (!item.isOfferedToday && !item.isSkippedToday && !item.isPenaltyPaid) {
                     shouldLockPrayer = item.prayerType
@@ -180,8 +181,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         // Auto trigger lockdown notification and foreground service if active and not already locked
         if (shouldLockPrayer != null && !_uiState.value.isLockdownActive) {
-            PrayerNotificationHelper.showLockdownActiveNotification(getApplication(), shouldLockPrayer)
-            LockdownForegroundService.startService(getApplication(), shouldLockPrayer.displayName)
+            try {
+                PrayerNotificationHelper.showLockdownActiveNotification(getApplication(), shouldLockPrayer)
+                LockdownForegroundService.startService(getApplication(), shouldLockPrayer.displayName)
+            } catch (e: Exception) {
+                // Ignore service start restrictions
+            }
         }
 
         _uiState.update { state ->
@@ -216,13 +221,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 verificationResult = null
             )
         }
-        PrayerNotificationHelper.showLockdownActiveNotification(getApplication(), prayerType)
-        LockdownForegroundService.startService(getApplication(), prayerType.displayName)
+        try {
+            PrayerNotificationHelper.showLockdownActiveNotification(getApplication(), prayerType)
+            LockdownForegroundService.startService(getApplication(), prayerType.displayName)
+        } catch (e: Exception) {
+            // Handled
+        }
     }
 
     fun dismissLockdown() {
-        PrayerNotificationHelper.clearLockdownNotification(getApplication())
-        LockdownForegroundService.stopService(getApplication())
+        try {
+            PrayerNotificationHelper.clearLockdownNotification(getApplication())
+            LockdownForegroundService.stopService(getApplication())
+        } catch (e: Exception) {
+            // Handled
+        }
         _uiState.update {
             it.copy(
                 currentLockdownPrayer = null,

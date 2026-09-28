@@ -10,7 +10,6 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,13 +31,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Warning
@@ -46,11 +41,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -88,7 +81,7 @@ fun UninstallPenaltyDialog(
 
     var selectedApp by remember { mutableStateOf("Google Pay") }
     var utrInput by remember { mutableStateOf("") }
-    var txnNote by remember { mutableStateOf("Strict Salah v3.0 Uninstallation Penalty") }
+    var txnNote by remember { mutableStateOf("Strict Salah Uninstallation Penalty") }
     var upiStatusMessage by remember { mutableStateOf<String?>(null) }
 
     val upiApps = listOf(
@@ -102,19 +95,14 @@ fun UninstallPenaltyDialog(
     val upiLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val responseData = result.data?.getStringExtra("response")
-            val parsed = UpiPaymentGateway.parseUpiResponse(responseData)
-            if (parsed.isSuccess) {
-                val ref = parsed.transactionId ?: parsed.referenceId ?: "UPI-AUTO-${System.currentTimeMillis() % 100000}"
-                utrInput = ref
-                upiStatusMessage = "UPI payment approved! Ref: $ref"
-                onConfirmUninstallPayment(selectedApp, ref)
-            } else {
-                upiStatusMessage = "UPI returned: ${parsed.status}. If deducted, enter UTR number below."
-            }
+        val parsed = UpiPaymentGateway.parseUpiResponseIntent(result.data)
+        if (parsed.isSuccess || result.resultCode == Activity.RESULT_OK) {
+            val ref = parsed.transactionId ?: parsed.referenceId ?: "UPI-AUTO-${System.currentTimeMillis() % 1000000}"
+            utrInput = ref
+            upiStatusMessage = "✅ UPI payment approved! Ref: $ref"
+            onConfirmUninstallPayment(selectedApp, ref)
         } else {
-            upiStatusMessage = "Payment window completed. Enter your 12-digit UTR/Reference ID below to verify."
+            upiStatusMessage = "Payment window completed (${parsed.status}). Enter 12-digit UTR below to confirm."
         }
     }
 
@@ -177,7 +165,7 @@ fun UninstallPenaltyDialog(
                         fontSize = 18.sp
                     )
                     Text(
-                        text = if (isUninstallUnlocked) "Clearance Pass Active" else "Strict Salah v3.0 Penalty Policy",
+                        text = if (isUninstallUnlocked) "Clearance Pass Active" else "Strict Salah Penalty Policy",
                         fontSize = 12.sp,
                         color = if (isUninstallUnlocked) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.SemiBold
@@ -217,7 +205,7 @@ fun UninstallPenaltyDialog(
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Your uninstallation clearance token is valid. You may now proceed to system settings to manage or uninstall the application without locking.",
+                                text = "Your uninstallation clearance token is valid for 1 hour. You may now proceed to system settings to manage or uninstall the application.",
                                 fontSize = 12.sp,
                                 lineHeight = 16.sp
                             )
@@ -236,7 +224,7 @@ fun UninstallPenaltyDialog(
                                     Column {
                                         Text("Authorization Token:", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         Text(
-                                            text = unlockToken.ifBlank { "SS-PASS-AUTH-30" },
+                                            text = unlockToken.ifBlank { "SS-PASS-AUTH" },
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
                                             fontFamily = FontFamily.Monospace,
@@ -244,7 +232,7 @@ fun UninstallPenaltyDialog(
                                         )
                                     }
                                     IconButton(
-                                        onClick = { copyToClipboard(unlockToken.ifBlank { "SS-PASS-AUTH-30" }, "Clearance Token") },
+                                        onClick = { copyToClipboard(unlockToken.ifBlank { "SS-PASS-AUTH" }, "Clearance Token") },
                                         modifier = Modifier.size(32.dp)
                                     ) {
                                         Icon(Icons.Default.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(16.dp))
@@ -285,7 +273,7 @@ fun UninstallPenaltyDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Strict Salah v3.0 enforces a strict ₹100 discipline penalty to prevent uninstallation and help you maintain lifelong consistency in your daily Salah.",
+                                text = "Strict Salah enforces a ₹100 discipline penalty to prevent uninstallation and help you maintain consistency in daily Salah.",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 lineHeight = 16.sp
@@ -416,7 +404,7 @@ fun UninstallPenaltyDialog(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Or choose UPI App & Verify Transaction:",
+                        text = "Or choose UPI App & Enter UTR:",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -497,7 +485,7 @@ fun UninstallPenaltyDialog(
                             color = Color.White
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Verifying UPI...")
+                        Text("Verifying Payment...")
                     } else {
                         Icon(
                             imageVector = Icons.Default.LockOpen,

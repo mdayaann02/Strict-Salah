@@ -25,6 +25,7 @@
     <!-- App Lock & Window Overlay support -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <queries>
         <intent>
@@ -73,7 +74,11 @@
             android:name=".notifications.LockdownForegroundService"
             android:exported="false"
             android:foregroundServiceType="specialUse"
-            tools:ignore="ForegroundServicePermission" />
+            tools:ignore="ForegroundServicePermission">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Prayer lockdown guard" />
+        </service>
 
         <!-- Device Admin Receiver for Optional Anti-Uninstall Protection -->
         <receiver

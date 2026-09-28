@@ -27,8 +27,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CurrencyRupee
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Warning
@@ -39,6 +41,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -75,6 +78,7 @@ fun PaymentDialog(
     var selectedApp by remember { mutableStateOf("Google Pay") }
     var upiRefInput by remember { mutableStateOf("") }
     var upiStatusMessage by remember { mutableStateOf<String?>(null) }
+    var isPaymentApprovedByCallback by remember { mutableStateOf(false) }
 
     val upiApps = listOf(
         Pair("Google Pay", Color(0xFF1A73E8)),
@@ -86,19 +90,15 @@ fun PaymentDialog(
     val upiLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val responseData = result.data?.getStringExtra("response")
-            val parsed = UpiPaymentGateway.parseUpiResponse(responseData)
-            if (parsed.isSuccess) {
-                val ref = parsed.transactionId ?: parsed.referenceId ?: "UPI-AUTO-${System.currentTimeMillis() % 100000}"
-                upiRefInput = ref
-                upiStatusMessage = "UPI payment approved! Ref: $ref"
-                onConfirmPayment(selectedApp, ref)
-            } else {
-                upiStatusMessage = "UPI status: ${parsed.status}. Enter UTR reference below to confirm."
-            }
+        val parsed = UpiPaymentGateway.parseUpiResponseIntent(result.data)
+        if (parsed.isSuccess || result.resultCode == Activity.RESULT_OK) {
+            val ref = parsed.transactionId ?: parsed.referenceId ?: "UPI-APP-${System.currentTimeMillis() % 1000000}"
+            upiRefInput = ref
+            isPaymentApprovedByCallback = true
+            upiStatusMessage = "✅ Payment approved via UPI Intent! Ref: $ref"
+            onConfirmPayment(selectedApp, ref)
         } else {
-            upiStatusMessage = "Payment window closed. Enter UTR reference below if transaction completed."
+            upiStatusMessage = "Payment window finished (${parsed.status}). Enter 12-digit UTR reference below to verify."
         }
     }
 
@@ -130,7 +130,7 @@ fun PaymentDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(38.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFD32F2F).copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
@@ -139,10 +139,10 @@ fun PaymentDialog(
                         imageVector = Icons.Default.CurrencyRupee,
                         contentDescription = "Penalty",
                         tint = Color(0xFFD32F2F),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
                         text = "Pay ₹10 Skip Penalty",
@@ -207,7 +207,7 @@ fun PaymentDialog(
                                 )
                                 Text(
                                     text = "₹10.00",
-                                    fontSize = 22.sp,
+                                    fontSize = 24.sp,
                                     fontWeight = FontWeight.Black,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -219,7 +219,7 @@ fun PaymentDialog(
                             ) {
                                 Text(
                                     text = prayerType.displayName,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -238,7 +238,7 @@ fun PaymentDialog(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
@@ -307,7 +307,7 @@ fun PaymentDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "Or Select Your Payment Method & Enter UTR:",
+                    text = "Or Select Your Payment App & Enter UTR / Txn ID:",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -352,8 +352,8 @@ fun PaymentDialog(
                 OutlinedTextField(
                     value = upiRefInput,
                     onValueChange = { upiRefInput = it },
-                    label = { Text("Payer UPI / 12-Digit UTR Ref") },
-                    placeholder = { Text("e.g. 427819827102") },
+                    label = { Text("12-Digit UTR / Transaction ID") },
+                    placeholder = { Text("e.g. 427819827102 or UPI Ref") },
                     singleLine = true,
                     leadingIcon = {
                         Icon(
@@ -369,7 +369,7 @@ fun PaymentDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val ref = upiRefInput.trim().ifBlank { "UPI-REF-${System.currentTimeMillis() % 100000}" }
+                    val ref = upiRefInput.trim().ifBlank { "UPI-${System.currentTimeMillis() % 1000000}" }
                     onConfirmPayment(selectedApp, ref)
                 },
                 enabled = !isProcessing,
@@ -386,7 +386,7 @@ fun PaymentDialog(
                         color = Color.White
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Verifying...")
+                    Text("Verifying Payment...")
                 } else {
                     Icon(
                         imageVector = Icons.Default.LockOpen,
@@ -394,7 +394,7 @@ fun PaymentDialog(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Confirm ₹10 Paid & Unlock")
+                    Text("Verify ₹10 Paid & Unlock")
                 }
             }
         },

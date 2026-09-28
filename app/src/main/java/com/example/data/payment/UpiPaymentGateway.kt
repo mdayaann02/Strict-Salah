@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import java.text.DecimalFormat
 import java.util.Locale
 import java.util.UUID
 
@@ -45,7 +44,7 @@ object UpiPaymentGateway {
             val isInstalled = try {
                 packageManager.getPackageInfo(pkg, 0)
                 true
-            } catch (e: PackageManager.NameNotFoundException) {
+            } catch (e: Exception) {
                 false
             }
             UpiAppInfo(name = name, packageName = pkg, isInstalled = isInstalled)
@@ -78,6 +77,65 @@ object UpiPaymentGateway {
         return intent
     }
 
+    /**
+     * Parses the response returned from UPI apps via ActivityResult Intent.
+     * Checks "response" string, intent data URI, and individual extras keys.
+     */
+    fun parseUpiResponseIntent(intent: Intent?): UpiPaymentResult {
+        if (intent == null) {
+            return UpiPaymentResult(
+                isSuccess = false,
+                transactionId = null,
+                referenceId = null,
+                responseCode = null,
+                status = "NO_DATA",
+                rawResponse = null
+            )
+        }
+
+        // 1. Try "response" extra
+        val responseExtra = intent.getStringExtra("response")
+        if (!responseExtra.isNullOrBlank()) {
+            return parseUpiResponse(responseExtra)
+        }
+
+        // 2. Try URI data string
+        val dataUriString = intent.dataString
+        if (!dataUriString.isNullOrBlank() && dataUriString.contains("Status", ignoreCase = true)) {
+            val query = Uri.parse(dataUriString).query
+            if (!query.isNullOrBlank()) {
+                return parseUpiResponse(query)
+            }
+        }
+
+        // 3. Try direct extras
+        val statusExtra = intent.getStringExtra("Status") ?: intent.getStringExtra("status")
+        val txnId = intent.getStringExtra("txnId") ?: intent.getStringExtra("ApprovalRefNo")
+        val refId = intent.getStringExtra("txnRef") ?: intent.getStringExtra("tr")
+        val respCode = intent.getStringExtra("responseCode")
+
+        if (!statusExtra.isNullOrBlank() || !txnId.isNullOrBlank()) {
+            val isSuccess = statusExtra?.uppercase(Locale.ROOT) in listOf("SUCCESS", "SUBMITTED", "00") || respCode == "00"
+            return UpiPaymentResult(
+                isSuccess = isSuccess,
+                transactionId = txnId,
+                referenceId = refId,
+                responseCode = respCode,
+                status = statusExtra ?: if (isSuccess) "SUCCESS" else "PENDING",
+                rawResponse = "Status=$statusExtra&txnId=$txnId&txnRef=$refId"
+            )
+        }
+
+        return UpiPaymentResult(
+            isSuccess = false,
+            transactionId = null,
+            referenceId = null,
+            responseCode = null,
+            status = "WINDOW_CLOSED",
+            rawResponse = null
+        )
+    }
+
     fun parseUpiResponse(responseString: String?): UpiPaymentResult {
         if (responseString.isNullOrBlank()) {
             return UpiPaymentResult(
@@ -90,8 +148,6 @@ object UpiPaymentGateway {
             )
         }
 
-        // Response string usually looks like:
-        // "txnId=123456&responseCode=00&ApprovalRefNo=987654&Status=SUCCESS&txnRef=SS12345"
         val params = mutableMapOf<String, String>()
         val pairs = responseString.split("&")
         for (pair in pairs) {
@@ -106,7 +162,7 @@ object UpiPaymentGateway {
         val refId = params["txnref"]
         val responseCode = params["responsecode"]
 
-        val isSuccess = status == "SUCCESS" || responseCode == "00" || status == "SUBMITTED"
+        val isSuccess = status == "SUCCESS" || status.contains("SUCCESS") || responseCode == "00" || status == "SUBMITTED"
 
         return UpiPaymentResult(
             isSuccess = isSuccess,
@@ -118,7 +174,16 @@ object UpiPaymentGateway {
         )
     }
 
+    fun isValidUtrReference(utr: String): Boolean {
+        val cleaned = utr.trim()
+        return cleaned.length >= 6
+    }
+
     fun generateUninstallToken(): String {
         return "SS-UNINSTALL-" + UUID.randomUUID().toString().take(8).uppercase(Locale.ROOT) + "-" + (System.currentTimeMillis() % 10000)
+    }
+
+    fun generateReceiptNumber(type: String): String {
+        return "SS-${type.uppercase(Locale.ROOT)}-${System.currentTimeMillis() % 1000000}"
     }
 }

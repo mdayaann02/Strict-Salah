@@ -1,5 +1,15 @@
 package com.example.ui.screens
 
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,20 +29,34 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.BrightnessAuto
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Contrast
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockPerson
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.UnfoldLess
+import androidx.compose.material.icons.filled.UnfoldMore
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,33 +74,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.local.UserProfileEntity
 import com.example.data.model.PrayerType
+import com.example.data.payment.UpiPaymentGateway
+import com.example.notifications.StrictSalahAdminReceiver
 import com.example.ui.components.PrayerTimingsManagementCard
 import com.example.ui.components.RegisteredJanamazCard
 import com.example.ui.viewmodel.MainUiState
-
-import android.app.admin.DevicePolicyManager
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockPerson
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.WarningAmber
-import androidx.compose.ui.platform.LocalContext
-import com.example.notifications.StrictSalahAdminReceiver
 
 @Composable
 fun SettingsScreen(
@@ -95,6 +113,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val profile = uiState.profile
+    val context = LocalContext.current
 
     var fajrOffset by remember(profile.fajrOffsetMinutes) { mutableIntStateOf(profile.fajrOffsetMinutes) }
     var dhuhrOffset by remember(profile.dhuhrOffsetMinutes) { mutableIntStateOf(profile.dhuhrOffsetMinutes) }
@@ -107,48 +126,114 @@ fun SettingsScreen(
     var lockDuration by remember(profile.lockdownDurationMinutes) { mutableIntStateOf(profile.lockdownDurationMinutes) }
     var appLockEnabled by remember(profile.isAppLockServiceEnabled) { mutableStateOf(profile.isAppLockServiceEnabled) }
 
+    // State map to manage which dropdown function menu is expanded
+    // Defaults: Theme, Prayer Times and Lockdown open by default
+    val expandedSections = remember {
+        mutableStateMapOf(
+            "TIMINGS" to false,
+            "OFFSETS" to false,
+            "LOCKDOWN" to true,
+            "SECURITY" to false,
+            "PAYMENT" to false,
+            "THEME" to true,
+            "JANAMAZ" to false,
+            "NOTIFICATIONS" to false,
+            "SYSTEM" to false
+        )
+    }
+
+    val toggleSection = { key: String ->
+        expandedSections[key] = !(expandedSections[key] ?: false)
+    }
+
+    val expandAll = {
+        listOf("TIMINGS", "OFFSETS", "LOCKDOWN", "SECURITY", "PAYMENT", "THEME", "JANAMAZ", "NOTIFICATIONS", "SYSTEM").forEach {
+            expandedSections[it] = true
+        }
+    }
+
+    val collapseAll = {
+        listOf("TIMINGS", "OFFSETS", "LOCKDOWN", "SECURITY", "PAYMENT", "THEME", "JANAMAZ", "NOTIFICATIONS", "SYSTEM").forEach {
+            expandedSections[it] = false
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
             .testTag("settings_screen"),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Spacer(modifier = Modifier.height(4.dp))
 
-        // 1. APP THEME & APPEARANCE CUSTOMIZATION CARD
-        Card(
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = Modifier.fillMaxWidth().testTag("app_theme_settings_card")
+        // Top Control Header with Expand/Collapse All
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Palette,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "App Theme & Appearance",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
+            Column {
                 Text(
-                    text = "Choose your preferred theme mode (including pitch-black AMOLED) and dynamic accent color palette.",
+                    text = "Function Settings",
+                    fontWeight = FontWeight.Black,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Tap any category dropdown to expand",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                OutlinedButton(
+                    onClick = { expandAll() },
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Icon(Icons.Default.UnfoldMore, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Expand All", fontSize = 10.sp)
+                }
+                OutlinedButton(
+                    onClick = { collapseAll() },
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Icon(Icons.Default.UnfoldLess, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Collapse", fontSize = 10.sp)
+                }
+            }
+        }
+
+        // ==========================================
+        // 1. DROPDOWN: THEME & LIQUID GLASS VISUALS
+        // ==========================================
+        SettingsDropdownCard(
+            title = "Liquid Glass Theme & Visuals",
+            subtitle = "Theme: ${profile.themeMode} • Palette: ${profile.colorPalette}",
+            icon = Icons.Default.Palette,
+            iconTint = Color(0xFF00B4D8),
+            statusBadge = if (profile.themeMode == "LIQUID_GLASS") "Liquid Active" else profile.themeMode,
+            isExpanded = expandedSections["THEME"] ?: false,
+            onToggle = { toggleSection("THEME") },
+            testTag = "dropdown_theme"
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = "Choose your preferred theme style and accent color palette.",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Theme Mode Selector (System, Light, Dark, AMOLED)
                 Text(
                     text = "THEME MODE",
                     fontSize = 10.sp,
@@ -169,33 +254,31 @@ fun SettingsScreen(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     themeModes.forEach { (modeKey, label, icon) ->
                         val isSelected = profile.themeMode.equals(modeKey, ignoreCase = true)
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(10.dp),
                             color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
                             onClick = { onSetThemeMode(modeKey) },
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("theme_mode_$modeKey")
+                            modifier = Modifier.weight(1f).testTag("theme_mode_$modeKey")
                         ) {
                             Column(
-                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                                modifier = Modifier.padding(vertical = 8.dp, horizontal = 2.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
                                     imageVector = icon,
                                     contentDescription = label,
                                     tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(3.dp))
                                 Text(
                                     text = label,
-                                    fontSize = 11.sp,
+                                    fontSize = 10.sp,
                                     fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
                                     color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1
@@ -205,9 +288,8 @@ fun SettingsScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Accent Color Palette Selector
                 Text(
                     text = "ACCENT COLOR PALETTE",
                     fontSize = 10.sp,
@@ -223,7 +305,7 @@ fun SettingsScreen(
                     Triple("GOLD", "Amber Gold", Color(0xFF825D00)),
                     Triple("INDIGO", "Indigo", Color(0xFF1E5BB0)),
                     Triple("CRIMSON", "Crimson", Color(0xFF9E2A2B)),
-                    Triple("DYNAMIC", "Dynamic", Color(0xFF00838F))
+                    Triple("DYNAMIC", "Aqua Cyan", Color(0xFF00838F))
                 )
 
                 Row(
@@ -242,7 +324,7 @@ fun SettingsScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(32.dp)
                                     .clip(CircleShape)
                                     .background(color)
                                     .border(
@@ -257,14 +339,14 @@ fun SettingsScreen(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = "Selected",
                                         tint = Color.White,
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(3.dp))
                             Text(
-                                text = name,
-                                fontSize = 9.sp,
+                                text = name.split(" ")[0],
+                                fontSize = 10.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -274,52 +356,408 @@ fun SettingsScreen(
             }
         }
 
-        // 2. 12-Hour Prayer Timings & Mosque Schedule Management Card
-        PrayerTimingsManagementCard(
-            schedule = uiState.schedule,
-            profile = profile,
-            onUpdatePrayerTiming = onUpdatePrayerTiming,
-            onResetPrayerTiming = onResetPrayerTiming,
-            onResetAllToDefault = onResetAllPrayerTimings,
-            onToggleUseCustom = onToggleUseCustomTimings
-        )
-
-        // 3. Notification Settings Section
-        Card(
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = Modifier.fillMaxWidth()
+        // ==========================================
+        // 2. DROPDOWN: STRICT SALAH LOCKDOWN & ANTI-BYPASS
+        // ==========================================
+        SettingsDropdownCard(
+            title = "Strict Salah Lockdown & Anti-Bypass",
+            subtitle = if (appLockEnabled) "Active • $lockDuration min window • Full overlay guard" else "Disabled",
+            icon = Icons.Default.Lock,
+            iconTint = if (appLockEnabled) Color(0xFFD32F2F) else Color.Gray,
+            statusBadge = if (appLockEnabled) "GUARD ON" else "OFF",
+            isExpanded = expandedSections["LOCKDOWN"] ?: false,
+            onToggle = { toggleSection("LOCKDOWN") },
+            testTag = "dropdown_lockdown"
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Notifications & Reminders",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
+            Column(modifier = Modifier.padding(14.dp)) {
+                // App lock master switch
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Enforce Strict Overlay Lockdown",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                        Text(
+                            text = "Locks screen automatically during prayer times until Janamaz photo is AI-verified or skip fine is paid.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 15.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Switch(
+                        checked = appLockEnabled,
+                        onCheckedChange = {
+                            appLockEnabled = it
+                            onSaveSettings(notificationsEnabled, reminderMinutes, lockDuration, it)
+                        },
+                        modifier = Modifier.testTag("app_lock_switch")
                     )
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                Spacer(modifier = Modifier.height(14.dp))
 
+                // Lockdown duration stepper
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Salah Alerts", fontWeight = FontWeight.SemiBold)
                         Text(
-                            "Timely notification before and at Salah start",
+                            text = "Lock Window Duration",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                        Text(
+                            text = "Time window where strict lock is strictly enforced after prayer start.",
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilledIconButton(
+                            onClick = {
+                                if (lockDuration > 10) {
+                                    lockDuration -= 5
+                                    onSaveSettings(notificationsEnabled, reminderMinutes, lockDuration, appLockEnabled)
+                                }
+                            },
+                            enabled = lockDuration > 10,
+                            modifier = Modifier.size(32.dp),
+                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(16.dp))
+                        }
+
+                        Text(
+                            text = "$lockDuration min",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+
+                        FilledIconButton(
+                            onClick = {
+                                if (lockDuration < 90) {
+                                    lockDuration += 5
+                                    onSaveSettings(notificationsEnabled, reminderMinutes, lockDuration, appLockEnabled)
+                                }
+                            },
+                            enabled = lockDuration < 90,
+                            modifier = Modifier.size(32.dp),
+                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Increase", modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+            }
+        }
+
+        // ==========================================
+        // 3. DROPDOWN: MOSQUE & CUSTOM PRAYER TIMINGS
+        // ==========================================
+        SettingsDropdownCard(
+            title = "Mosque & Custom Prayer Timings",
+            subtitle = if (profile.useCustomTimings) "Custom Mosque Jamat Timings" else "GPS Solar Timings",
+            icon = Icons.Default.Schedule,
+            iconTint = Color(0xFF0D5D44),
+            statusBadge = if (profile.useCustomTimings) "Custom" else "GPS Baseline",
+            isExpanded = expandedSections["TIMINGS"] ?: false,
+            onToggle = { toggleSection("TIMINGS") },
+            testTag = "dropdown_timings"
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                PrayerTimingsManagementCard(
+                    schedule = uiState.schedule,
+                    profile = profile,
+                    onUpdatePrayerTiming = onUpdatePrayerTiming,
+                    onResetPrayerTiming = onResetPrayerTiming,
+                    onResetAllToDefault = onResetAllPrayerTimings,
+                    onToggleUseCustom = onToggleUseCustomTimings
+                )
+            }
+        }
+
+        // ==========================================
+        // 4. DROPDOWN: PRAYER TIME OFFSETS & SOLAR GROUNDING
+        // ==========================================
+        SettingsDropdownCard(
+            title = "Prayer Time Offsets & Solar Sync",
+            subtitle = "Fajr: ${fajrOffset}m • Dhuhr: ${dhuhrOffset}m • Asr: ${asrOffset}m • Maghrib: ${maghribOffset}m • Isha: ${ishaOffset}m",
+            icon = Icons.Default.Tune,
+            iconTint = Color(0xFF825D00),
+            statusBadge = if (profile.isGroundedViaSearch) "Search Grounded" else "GPS Grounded",
+            isExpanded = expandedSections["OFFSETS"] ?: false,
+            onToggle = { toggleSection("OFFSETS") },
+            testTag = "dropdown_offsets"
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = "Fine-tune individual prayer times by +/- minutes to match your local mosque Adhan timetable perfectly.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val offsetItems = listOf(
+                    Triple("Fajr Offset", fajrOffset) { v: Int -> fajrOffset = v },
+                    Triple("Dhuhr Offset", dhuhrOffset) { v: Int -> dhuhrOffset = v },
+                    Triple("Asr Offset", asrOffset) { v: Int -> asrOffset = v },
+                    Triple("Maghrib Offset", maghribOffset) { v: Int -> maghribOffset = v },
+                    Triple("Isha Offset", ishaOffset) { v: Int -> ishaOffset = v }
+                )
+
+                offsetItems.forEach { (name, value, setter) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = name, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FilledIconButton(
+                                onClick = {
+                                    setter(value - 1)
+                                    onSaveOffsets(fajrOffset, dhuhrOffset, asrOffset, maghribOffset, ishaOffset)
+                                },
+                                modifier = Modifier.size(28.dp),
+                                colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Icon(Icons.Default.Remove, contentDescription = null, modifier = Modifier.size(14.dp))
+                            }
+
+                            Text(
+                                text = "${if (value >= 0) "+$value" else "$value"} min",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.width(55.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+
+                            FilledIconButton(
+                                onClick = {
+                                    setter(value + 1)
+                                    onSaveOffsets(fajrOffset, dhuhrOffset, asrOffset, maghribOffset, ishaOffset)
+                                },
+                                modifier = Modifier.size(28.dp),
+                                colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = onTriggerSearchSync,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth().testTag("trigger_search_grounding_button")
+                ) {
+                    Icon(Icons.Default.TravelExplore, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Re-Ground Timings via Google Search", fontSize = 12.sp)
+                }
+            }
+        }
+
+        // ==========================================
+        // 5. DROPDOWN: DEVICE ADMIN & ANTI-UNINSTALL GUARD
+        // ==========================================
+        val adminComponent = remember { ComponentName(context, StrictSalahAdminReceiver::class.java) }
+        val dpm = remember { context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager }
+        val isDeviceAdminActive = remember(profile) { dpm.isAdminActive(adminComponent) }
+        val isClearanceActive = profile.isUninstallUnlocked && (System.currentTimeMillis() < profile.uninstallUnlockExpiry)
+
+        SettingsDropdownCard(
+            title = "Device Admin & Anti-Uninstall Security",
+            subtitle = if (isClearanceActive) "Clearance Pass Active" else "₹100 Uninstallation Penalty Policy Enforced",
+            icon = Icons.Default.Shield,
+            iconTint = if (isClearanceActive) Color(0xFF2E7D32) else Color(0xFFD32F2F),
+            statusBadge = if (isClearanceActive) "UNLOCKED" else "LOCKED",
+            isExpanded = expandedSections["SECURITY"] ?: false,
+            onToggle = { toggleSection("SECURITY") },
+            testTag = "dropdown_security"
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (isClearanceActive) Color(0xFF2E7D32).copy(alpha = 0.1f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            imageVector = if (isClearanceActive) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
+                            contentDescription = null,
+                            tint = if (isClearanceActive) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isClearanceActive) {
+                                "Uninstallation Clearance Pass is active! You can proceed to system settings to manage or remove the app."
+                            } else {
+                                "Strict Salah enforces a strict ₹100 discipline penalty to prevent uninstallation and foster lifelong Salah consistency."
+                            },
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp,
+                            color = if (isClearanceActive) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = onOpenDeRegistrationPledge,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isClearanceActive) Color(0xFF2E7D32) else Color(0xFFD32F2F)
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth().testTag("open_uninstall_penalty_button")
+                ) {
+                    Icon(
+                        imageVector = if (isClearanceActive) Icons.Default.VerifiedUser else Icons.Default.CurrencyRupee,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (isClearanceActive) "View Clearance Pass / Token" else "Pay ₹100 Uninstallation Penalty Gateway",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // ==========================================
+        // 6. DROPDOWN: UPI PAYMENT GATEWAY & PENALTIES
+        // ==========================================
+        SettingsDropdownCard(
+            title = "UPI Payment Gateway & Penalties",
+            subtitle = "Receiver: ${UpiPaymentGateway.OFFICIAL_UPI_ID} • Total: ₹${profile.totalPenaltiesPaid}",
+            icon = Icons.Default.CurrencyRupee,
+            iconTint = Color(0xFF1976D2),
+            statusBadge = "₹10 / ₹100 UPI",
+            isExpanded = expandedSections["PAYMENT"] ?: false,
+            onToggle = { toggleSection("PAYMENT") },
+            testTag = "dropdown_payment"
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("Official Payee UPI ID", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(UpiPaymentGateway.OFFICIAL_UPI_ID, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                Text("Payee: ${UpiPaymentGateway.PAYEE_NAME}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text("Prayer Skip Penalty", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("₹10.00", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text("Applied when 10 free chances end", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text("Uninstall Penalty", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("₹100.00", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text("1-hr clearance token pass", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+
+        // ==========================================
+        // 7. DROPDOWN: JANAMAZ AI CAMERA & PROFILE
+        // ==========================================
+        SettingsDropdownCard(
+            title = "Janamaz AI Camera Profile",
+            subtitle = if (profile.isJanamazRegistered) "Janamaz Profile Registered" else "No Mat Profile Saved",
+            icon = Icons.Default.CameraAlt,
+            iconTint = Color(0xFF5F259F),
+            statusBadge = if (profile.isJanamazRegistered) "AI Verified" else "Setup Needed",
+            isExpanded = expandedSections["JANAMAZ"] ?: false,
+            onToggle = { toggleSection("JANAMAZ") },
+            testTag = "dropdown_janamaz"
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                RegisteredJanamazCard(
+                    profile = profile,
+                    registeredBitmaps = uiState.registeredJanamazBitmaps,
+                    onOpenRegistration = onOpenJanamazRegistration
+                )
+            }
+        }
+
+        // ==========================================
+        // 8. DROPDOWN: ADHAN & NOTIFICATIONS
+        // ==========================================
+        SettingsDropdownCard(
+            title = "Adhan & Prayer Notifications",
+            subtitle = if (notificationsEnabled) "Alerts ON • $reminderMinutes min before Adhan" else "Alerts OFF",
+            icon = Icons.Default.Notifications,
+            iconTint = Color(0xFF00838F),
+            statusBadge = if (notificationsEnabled) "ON" else "OFF",
+            isExpanded = expandedSections["NOTIFICATIONS"] ?: false,
+            onToggle = { toggleSection("NOTIFICATIONS") },
+            testTag = "dropdown_notifications"
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Salah Time Notifications", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Get timely Adhan reminders before every Salah.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Switch(
                         checked = notificationsEnabled,
@@ -331,389 +769,207 @@ fun SettingsScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
+                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Reminder minutes selector
-                Text("Reminder Timing Before Prayer:", fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.height(6.dp))
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    listOf(5, 10, 15).forEach { min ->
-                        val isSelected = reminderMinutes == min
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Pre-Salah Reminder", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Minutes before Adhan to send preparatory alert.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FilledIconButton(
                             onClick = {
-                                reminderMinutes = min
-                                onSaveSettings(notificationsEnabled, min, lockDuration, appLockEnabled)
+                                if (reminderMinutes > 5) {
+                                    reminderMinutes -= 5
+                                    onSaveSettings(notificationsEnabled, reminderMinutes, lockDuration, appLockEnabled)
+                                }
                             },
-                            modifier = Modifier.weight(1f)
+                            enabled = reminderMinutes > 5,
+                            modifier = Modifier.size(28.dp),
+                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
-                            Text(
-                                text = "$min mins",
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(vertical = 8.dp),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
+                            Icon(Icons.Default.Remove, contentDescription = null, modifier = Modifier.size(14.dp))
+                        }
+                        Text("$reminderMinutes min", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        FilledIconButton(
+                            onClick = {
+                                if (reminderMinutes < 30) {
+                                    reminderMinutes += 5
+                                    onSaveSettings(notificationsEnabled, reminderMinutes, lockDuration, appLockEnabled)
+                                }
+                            },
+                            enabled = reminderMinutes < 30,
+                            modifier = Modifier.size(28.dp),
+                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
                         }
                     }
                 }
             }
         }
 
-        // 4. Custom Prayer Timings Offset Section
-        Card(
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = Modifier.fillMaxWidth()
+        // ==========================================
+        // 9. DROPDOWN: STRICT SALAH V4.0 SYSTEM INFO
+        // ==========================================
+        SettingsDropdownCard(
+            title = "Strict Salah v4.0 System Information",
+            subtitle = "Version 4.0 • Gemini 3.1 Pro Preview Grounding",
+            icon = Icons.Default.Info,
+            iconTint = MaterialTheme.colorScheme.primary,
+            statusBadge = "v4.0 Build",
+            isExpanded = expandedSections["SYSTEM"] ?: false,
+            onToggle = { toggleSection("SYSTEM") },
+            testTag = "dropdown_system"
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Tune,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Fine-Tune Prayer Timings (Offsets)",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
+            Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "Adjust individual prayer timings by minutes to match your local masjid azan.",
+                    text = "Strict Salah v4.0 is engineered with Liquid Glass dynamic fluid UI, robust UPI payment gateway integration, and military-grade discipline locks.",
                     fontSize = 11.sp,
+                    lineHeight = 15.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OffsetAdjusterRow(name = "Fajr", offset = fajrOffset) { fajrOffset = it }
-                OffsetAdjusterRow(name = "Dhuhr", offset = dhuhrOffset) { dhuhrOffset = it }
-                OffsetAdjusterRow(name = "Asr", offset = asrOffset) { asrOffset = it }
-                OffsetAdjusterRow(name = "Maghrib", offset = maghribOffset) { maghribOffset = it }
-                OffsetAdjusterRow(name = "Isha", offset = ishaOffset) { ishaOffset = it }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Button(
-                    onClick = {
-                        onSaveOffsets(fajrOffset, dhuhrOffset, asrOffset, maghribOffset, ishaOffset)
-                    },
-                    modifier = Modifier.fillMaxWidth().testTag("save_offsets_button")
-                ) {
-                    Text("Save Custom Offsets")
-                }
-            }
-        }
-
-        // 5. Google Search Grounding Card
-        Card(
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.TravelExplore,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Google Search Grounding",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Strict Salah integrates gemini-3.5-flash with googleSearch tool to fetch authentic daily prayer timings for your exact GPS coordinates (${profile.cityName}).",
+                    text = "• Version: 4.0 (Production Release)\n• Official UPI ID: 8217317725@superyes\n• AI Model: Gemini 3.1 Pro Preview\n• Storage: Encrypted Offline Room Database",
                     fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 16.sp
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedButton(
-                    onClick = onTriggerSearchSync,
-                    enabled = !uiState.isSyncingSearch,
-                    modifier = Modifier.fillMaxWidth().testTag("sync_search_button")
-                ) {
-                    Text(if (uiState.isSyncingSearch) "Grounding via Google Search..." else "Re-sync with Google Search Now")
-                }
-            }
-        }
-
-        // 6. Leave Salah & Penalty Rules
-        Card(
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Shield,
-                        contentDescription = null,
-                        tint = Color(0xFFE5A800),
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "10 Chances & ₹10 Penalty Rule",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "• Every user begins with exactly 10 free chances to leave or skip Salah.\n" +
-                            "• Once all 10 chances are exhausted, skipping a prayer strictly incurs a penalty fee of ₹10 per salah.\n" +
-                            "• Free Skips Remaining: ${profile.freeSkipsRemaining} / 10\n" +
-                            "• Total Fines Paid: ₹${uiState.totalPenaltiesCollected}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 18.sp
-                )
-            }
-        }
-
-        // 7. Registered Janamaz Mat Configuration Card
-        RegisteredJanamazCard(
-            profile = profile,
-            registeredBitmaps = uiState.registeredJanamazBitmaps,
-            onOpenRegistration = onOpenJanamazRegistration
-        )
-
-        // 8. Strict Salah v3.0 Anti-Close & ₹100 Uninstallation Penalty Card
-        val context = LocalContext.current
-        val adminComponent = remember { ComponentName(context, StrictSalahAdminReceiver::class.java) }
-        val dpm = remember { context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager }
-        val isAdminActive = dpm?.isAdminActive(adminComponent) == true
-        val isUnlocked = profile.isUninstallUnlocked && (profile.uninstallUnlockExpiry == 0L || System.currentTimeMillis() < profile.uninstallUnlockExpiry)
-
-        Card(
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, if (isUnlocked) Color(0xFF2E7D32).copy(alpha = 0.4f) else Color(0xFFD32F2F).copy(alpha = 0.35f)),
-            modifier = Modifier.fillMaxWidth().testTag("anti_close_and_uninstall_card")
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = if (isUnlocked) Icons.Default.Shield else Icons.Default.Security,
-                        contentDescription = null,
-                        tint = if (isUnlocked) Color(0xFF2E7D32) else Color(0xFFD32F2F),
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Strict Salah v3.0 Uninstallation Guard",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "• Active Foreground Enforcement prevents closing or bypassing prayer lockdowns from recent applications.\n" +
-                            "• Any attempt to swipe the app away during Salah window immediately triggers automatic relaunch.\n" +
-                            "• Uninstallation requires an official ₹100 discipline penalty sent via secure UPI to 8217317725@superyes.",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 16.sp
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Clearance status badge
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (isUnlocked) Color(0xFF2E7D32).copy(alpha = 0.12f) else Color(0xFFD32F2F).copy(alpha = 0.12f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = if (isUnlocked) "🔓 Uninstallation Clearance Active" else "🔒 Uninstallation Strictly Protected",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = if (isUnlocked) Color(0xFF2E7D32) else Color(0xFFD32F2F)
-                            )
-                            Text(
-                                text = if (isUnlocked)
-                                    "Clearance Pass: ${profile.uninstallUnlockToken.ifBlank { "ACTIVE" }}"
-                                else
-                                    "₹100 Penalty fee required before uninstallation",
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Device Admin Protection Toggle / Setup
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Device Admin Anti-Tamper",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            )
-                            Text(
-                                text = if (isAdminActive) "🛡️ Device Admin Active (Blocks casual uninstallation)" else "Enable Device Admin to strictly prevent uninstall bypass",
-                                fontSize = 10.sp,
-                                color = if (isAdminActive) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        if (!isAdminActive) {
-                            OutlinedButton(
-                                onClick = {
-                                    val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
-                                        putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
-                                        putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Strict Salah requires Device Admin to enforce active prayer lockdowns.")
-                                    }
-                                    context.startActivity(intent)
-                                },
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.testTag("enable_device_admin_button")
-                            ) {
-                                Text("Enable", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // ₹100 Uninstall Penalty / Unlock Button
-                Button(
-                    onClick = onOpenDeRegistrationPledge,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isUnlocked) Color(0xFF2E7D32) else Color(0xFFD32F2F)
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth().testTag("open_deregistration_pledge_button")
-                ) {
-                    Icon(
-                        imageVector = if (isUnlocked) Icons.Default.Shield else Icons.Default.LockPerson,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = if (isUnlocked) "Manage Clearance / Open App Settings" else "Pay ₹100 UPI Penalty to Unlock Uninstallation",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
-                }
-            }
-        }
-
-        // 9. App Version Info Card
-        Card(
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Strict Salah v3.0",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    lineHeight = 16.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Secure UPI Payment Gateway • Qibla Compass Finder • AMOLED Theme • AI Janamaz Verification",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(80.dp))
     }
 }
 
+/**
+ * High-end Dropdown Menu / Accordion Card with Liquid Glass styling and smooth chevron animation
+ */
 @Composable
-fun OffsetAdjusterRow(
-    name: String,
-    offset: Int,
-    onOffsetChanged: (Int) -> Unit
+fun SettingsDropdownCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    iconTint: Color,
+    statusBadge: String? = null,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    testTag: String = "",
+    content: @Composable () -> Unit
 ) {
-    Row(
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        label = "chevronRotation"
+    )
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f)
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = if (isExpanded) 1.5.dp else 1.dp,
+            color = if (isExpanded) iconTint.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+        ),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .testTag(testTag)
     ) {
-        Text(name, fontWeight = FontWeight.Medium, fontSize = 13.sp)
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            FilledIconButton(
-                onClick = { onOffsetChanged(offset - 1) },
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ),
-                modifier = Modifier.size(32.dp)
+        Column {
+            // Clickable Header Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggle() }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(16.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(iconTint.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = title,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = subtitle,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (statusBadge != null) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = iconTint.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                text = statusBadge,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = iconTint,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .size(22.dp)
+                            .rotate(rotationAngle)
+                    )
+                }
             }
 
-            Text(
-                text = if (offset >= 0) "+$offset min" else "$offset min",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.width(68.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-
-            FilledIconButton(
-                onClick = { onOffsetChanged(offset + 1) },
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ),
-                modifier = Modifier.size(32.dp)
+            // Animated Collapsible Content Body
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Increase", modifier = Modifier.size(16.dp))
+                Column {
+                    Divider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                        thickness = 1.dp
+                    )
+                    content()
+                }
             }
         }
     }
