@@ -361,7 +361,7 @@ fun StatisticsScreen(
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "${profile.freeSkipsRemaining} / 10",
+                            text = "${profile.freeSkipsRemaining} / 3",
                             fontWeight = FontWeight.Black,
                             fontSize = 20.sp,
                             color = MaterialTheme.colorScheme.onSurface

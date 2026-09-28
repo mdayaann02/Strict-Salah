@@ -96,13 +96,17 @@ fun UninstallPenaltyDialog(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         val parsed = UpiPaymentGateway.parseUpiResponseIntent(result.data)
-        if (parsed.isSuccess || result.resultCode == Activity.RESULT_OK) {
-            val ref = parsed.transactionId ?: parsed.referenceId ?: "UPI-AUTO-${System.currentTimeMillis() % 1000000}"
+        if (parsed.isSuccess && !parsed.transactionId.isNullOrBlank()) {
+            val ref = parsed.transactionId!!
             utrInput = ref
             upiStatusMessage = "✅ UPI payment approved! Ref: $ref"
             onConfirmUninstallPayment(selectedApp, ref)
         } else {
-            upiStatusMessage = "Payment window completed (${parsed.status}). Enter 12-digit UTR below to confirm."
+            upiStatusMessage = if (parsed.status == "FAILED" || parsed.status == "FAILURE") {
+                "❌ Payment failed or cancelled in UPI app. Please retry or enter valid 12-digit UTR below."
+            } else {
+                "ℹ️ Returned from UPI app. If payment completed, enter the 12-digit Bank UTR / Reference ID below to verify."
+            }
         }
     }
 
@@ -410,7 +414,7 @@ fun UninstallPenaltyDialog(
                     )
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    // UPI App Selector with direct package launch
+                    // UPI App Selector
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -427,17 +431,7 @@ fun UninstallPenaltyDialog(
                                         color = if (isSelected) appColor else Color.Transparent,
                                         shape = RoundedCornerShape(8.dp)
                                     )
-                                    .clickable {
-                                        selectedApp = appName
-                                        val pkg = when (appName) {
-                                            "Google Pay" -> "com.google.android.apps.nbu.paisa.user"
-                                            "PhonePe" -> "com.phonepe.app"
-                                            "Paytm" -> "net.one97.paytm"
-                                            "BHIM UPI" -> "in.org.npci.upiapp"
-                                            else -> null
-                                        }
-                                        launchUpiIntent(pkg)
-                                    }
+                                    .clickable { selectedApp = appName }
                             ) {
                                 Column(
                                     modifier = Modifier.padding(vertical = 6.dp),
@@ -469,26 +463,6 @@ fun UninstallPenaltyDialog(
                                 modifier = Modifier.size(18.dp)
                             )
                         },
-                        trailingIcon = {
-                            TextButton(
-                                onClick = {
-                                    try {
-                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                        val item = clipboard.primaryClip?.getItemAt(0)?.text?.toString()?.trim()
-                                        if (!item.isNullOrBlank()) {
-                                            utrInput = item
-                                            Toast.makeText(context, "Pasted reference from clipboard", Toast.LENGTH_SHORT).show()
-                                        } else {
-                                            Toast.makeText(context, "Clipboard empty", Toast.LENGTH_SHORT).show()
-                                        }
-                                    } catch (e: Exception) {
-                                        // Handled
-                                    }
-                                }
-                            ) {
-                                Text("Paste", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        },
                         modifier = Modifier.fillMaxWidth().testTag("uninstall_utr_input")
                     )
                 }
@@ -496,12 +470,14 @@ fun UninstallPenaltyDialog(
         },
         confirmButton = {
             if (!isUninstallUnlocked) {
+                val isUtrValid = utrInput.trim().length >= 6
                 Button(
                     onClick = {
-                        val ref = utrInput.trim().ifBlank { "UPI-REF-${System.currentTimeMillis() % 1000000}" }
-                        onConfirmUninstallPayment(selectedApp, ref)
+                        if (isUtrValid) {
+                            onConfirmUninstallPayment(selectedApp, utrInput.trim())
+                        }
                     },
-                    enabled = !isProcessing,
+                    enabled = !isProcessing && isUtrValid,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFD32F2F)
                     ),

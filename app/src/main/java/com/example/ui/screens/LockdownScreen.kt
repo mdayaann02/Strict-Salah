@@ -241,25 +241,27 @@ fun LockdownScreen(
                 showInAppCamera = false
             }
         )
-    } else {
-        // Pulse animation for lockdown banner
-        val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-        val alphaAnim by infiniteTransition.animateFloat(
-            initialValue = 0.7f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1000, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "alpha"
-        )
+        return
+    }
 
-        Surface(
-            modifier = modifier
-                .fillMaxSize()
-                .testTag("lockdown_screen"),
-            color = Color(0xFF07120D)
-        ) {
+    // Pulse animation for lockdown banner
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val alphaAnim by infiniteTransition.animateFloat(
+        initialValue = 0.7f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+
+    Surface(
+        modifier = modifier
+            .fillMaxSize()
+            .testTag("lockdown_screen"),
+        color = Color(0xFF07120D)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -690,7 +692,7 @@ fun LockdownScreen(
                             color = if (freeSkips > 0) Color(0xFFFFD54F).copy(alpha = 0.2f) else Color(0xFFD32F2F).copy(alpha = 0.25f)
                         ) {
                             Text(
-                                text = if (freeSkips > 0) "$freeSkips / 10 Free Skips Left" else "0 Free Skips (₹10 Fine)",
+                                text = if (freeSkips > 0) "$freeSkips / 3 Free Skips Left" else "0 Free Skips (₹10 Fine)",
                                 color = if (freeSkips > 0) Color(0xFFFFD54F) else Color(0xFFFF8A80),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -703,9 +705,9 @@ fun LockdownScreen(
 
                     Text(
                         text = if (freeSkips > 0)
-                            "Each user is given strictly 10 free chances to leave Salah. Skipping now will consume 1 chance ($freeSkips remaining)."
+                            "Each user is given strictly 3 free chances to leave Salah. Skipping now will consume 1 chance ($freeSkips remaining)."
                         else
-                            "All 10 free chances have been consumed! You must pay a penalty fine of ₹10 via UPI to unlock without praying.",
+                            "All 3 free chances have been consumed! You must pay a penalty fine of ₹10 via UPI to unlock without praying.",
                         color = Color(0xFF9EA9A1),
                         fontSize = 11.sp,
                         lineHeight = 15.sp
@@ -744,7 +746,6 @@ fun LockdownScreen(
                 }
             }
         }
-    }
     }
 
     // Confirmation dialog for using 1 of 10 free chances

@@ -368,15 +368,28 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     com.example.util.AppLogoTheme.entries.forEach { logoTheme ->
                         val isSelected = profile.appLogoTheme.equals(logoTheme.key, ignoreCase = true)
+                        val themeAccent = when (logoTheme) {
+                            com.example.util.AppLogoTheme.BROTHER -> Color(0xFF10B981)
+                            com.example.util.AppLogoTheme.SISTER -> Color(0xFFF43F5E)
+                            com.example.util.AppLogoTheme.DEFAULT -> Color(0xFF3B82F6)
+                        }
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                            border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) themeAccent.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .weight(1f)
+                                .border(
+                                    width = if (isSelected) 2.dp else 1.dp,
+                                    color = if (isSelected) themeAccent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .clip(RoundedCornerShape(12.dp))
                                 .clickable {
                                     val gender = when (logoTheme) {
                                         com.example.util.AppLogoTheme.BROTHER -> "BROTHER"
@@ -386,43 +399,70 @@ fun SettingsScreen(
                                     onUpdateGenderAndLogo(gender, logoTheme.key)
                                 }
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Column(
+                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 6.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                androidx.compose.foundation.Image(
-                                    painter = androidx.compose.ui.res.painterResource(id = logoTheme.drawableRes),
-                                    contentDescription = logoTheme.title,
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = logoTheme.title,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp
+                                Box(contentAlignment = Alignment.Center) {
+                                    androidx.compose.foundation.Image(
+                                        painter = androidx.compose.ui.res.painterResource(id = logoTheme.drawableRes),
+                                        contentDescription = logoTheme.title,
+                                        modifier = Modifier
+                                            .size(44.dp)
+                                            .clip(RoundedCornerShape(10.dp))
                                     )
+                                    if (isSelected) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = themeAccent,
+                                            modifier = Modifier
+                                                .size(18.dp)
+                                                .align(Alignment.BottomEnd)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Selected",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Text(
+                                    text = when (logoTheme) {
+                                        com.example.util.AppLogoTheme.DEFAULT -> "Universal"
+                                        com.example.util.AppLogoTheme.BROTHER -> "Brother"
+                                        com.example.util.AppLogoTheme.SISTER -> "Sister"
+                                    },
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = themeAccent.copy(alpha = 0.15f),
+                                    modifier = Modifier.padding(top = 2.dp)
+                                ) {
                                     Text(
-                                        text = logoTheme.subtitle,
-                                        fontSize = 10.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = when (logoTheme) {
+                                            com.example.util.AppLogoTheme.DEFAULT -> "Universal"
+                                            com.example.util.AppLogoTheme.BROTHER -> "Masculine"
+                                            com.example.util.AppLogoTheme.SISTER -> "Feminine"
+                                        },
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = themeAccent,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                     )
                                 }
-                                androidx.compose.material3.RadioButton(
-                                    selected = isSelected,
-                                    onClick = {
-                                        val gender = when (logoTheme) {
-                                            com.example.util.AppLogoTheme.BROTHER -> "BROTHER"
-                                            com.example.util.AppLogoTheme.SISTER -> "SISTER"
-                                            else -> "NEUTRAL"
-                                        }
-                                        onUpdateGenderAndLogo(gender, logoTheme.key)
-                                    }
-                                )
                             }
                         }
                     }
@@ -769,7 +809,7 @@ fun SettingsScreen(
                         Column(modifier = Modifier.padding(10.dp)) {
                             Text("Prayer Skip Penalty", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("₹10.00", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text("Applied when 10 free chances end", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Applied when 3 free chances end", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
 

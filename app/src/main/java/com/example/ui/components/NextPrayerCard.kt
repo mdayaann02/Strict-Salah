@@ -98,7 +98,7 @@ fun NextPrayerCard(
                             )
                             Spacer(modifier = Modifier.width(5.dp))
                             Text(
-                                text = if (freeSkipsRemaining > 0) "$freeSkipsRemaining / 10 Free Skips" else "0 Free Skips (₹10 Fine)",
+                                text = if (freeSkipsRemaining > 0) "$freeSkipsRemaining / 3 Free Skips" else "0 Free Skips (₹10 Fine)",
                                 color = if (freeSkipsRemaining > 0) Color(0xFFFFE082) else Color(0xFFFF8A80),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold

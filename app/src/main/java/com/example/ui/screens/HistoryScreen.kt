@@ -119,7 +119,7 @@ fun HistoryScreen(
                         Text("Free Quota", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (profile.freeSkipsRemaining > 0) Color(0xFFE5A800) else Color(0xFFD32F2F))
                     }
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text(text = "${profile.freeSkipsRemaining}/10", fontSize = 20.sp, fontWeight = FontWeight.Black)
+                    Text(text = "${profile.freeSkipsRemaining}/3", fontSize = 20.sp, fontWeight = FontWeight.Black)
                 }
             }
 

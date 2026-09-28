@@ -65,7 +65,7 @@ fun DeRegistrationPledgeDialog(
     val context = LocalContext.current
     val recipientUpiId = "8217317725@superyes"
     var selectedApp by remember { mutableStateOf("Google Pay") }
-    var upiRefInput by remember { mutableStateOf("UPI-UNINSTALL-100") }
+    var upiRefInput by remember { mutableStateOf("") }
 
     val upiApps = listOf(
         Pair("Google Pay", Color(0xFF1A73E8)),
@@ -316,9 +316,14 @@ fun DeRegistrationPledgeDialog(
             }
         },
         confirmButton = {
+            val isUtrValid = upiRefInput.trim().length >= 6
             Button(
-                onClick = { onConfirmPledgePayment(selectedApp, upiRefInput.ifBlank { recipientUpiId }) },
-                enabled = !isProcessing,
+                onClick = {
+                    if (isUtrValid) {
+                        onConfirmPledgePayment(selectedApp, upiRefInput.trim())
+                    }
+                },
+                enabled = !isProcessing && isUtrValid,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFD32F2F)
                 ),

@@ -79,7 +79,7 @@ object UpiPaymentGateway {
 
     /**
      * Parses the response returned from UPI apps via ActivityResult Intent.
-     * Checks "response" string, intent data URI, bundle extras, and query keys.
+     * Strictly verifies explicit SUCCESS status code and transaction ID.
      */
     fun parseUpiResponseIntent(intent: Intent?): UpiPaymentResult {
         if (intent == null) {
@@ -88,7 +88,7 @@ object UpiPaymentGateway {
                 transactionId = null,
                 referenceId = null,
                 responseCode = null,
-                status = "NO_DATA",
+                status = "AWAITING_VERIFICATION",
                 rawResponse = null
             )
         }
@@ -101,51 +101,29 @@ object UpiPaymentGateway {
 
         // 2. Try URI data string
         val dataUriString = intent.dataString
-        if (!dataUriString.isNullOrBlank() && (dataUriString.contains("status", ignoreCase = true) || dataUriString.contains("txnid", ignoreCase = true))) {
+        if (!dataUriString.isNullOrBlank() && dataUriString.contains("Status", ignoreCase = true)) {
             val query = Uri.parse(dataUriString).query
             if (!query.isNullOrBlank()) {
                 return parseUpiResponse(query)
             }
         }
 
-        // 3. Try direct extras & bundles
-        var statusExtra = intent.getStringExtra("Status") ?: intent.getStringExtra("status") ?: intent.getStringExtra("STATUS")
-        var txnId = intent.getStringExtra("txnId") ?: intent.getStringExtra("txnid") ?: intent.getStringExtra("ApprovalRefNo") ?: intent.getStringExtra("approvalRefNo")
-        var refId = intent.getStringExtra("txnRef") ?: intent.getStringExtra("txnref") ?: intent.getStringExtra("tr")
-        var respCode = intent.getStringExtra("responseCode") ?: intent.getStringExtra("responsecode")
+        // 3. Try direct extras
+        val statusExtra = intent.getStringExtra("Status") ?: intent.getStringExtra("status")
+        val txnId = intent.getStringExtra("txnId") ?: intent.getStringExtra("ApprovalRefNo")
+        val refId = intent.getStringExtra("txnRef") ?: intent.getStringExtra("tr")
+        val respCode = intent.getStringExtra("responseCode")
 
-        val extras = intent.extras
-        if (extras != null) {
-            for (key in extras.keySet()) {
-                val value = extras.get(key)?.toString() ?: continue
-                val lowerKey = key.lowercase(Locale.ROOT)
-                if (lowerKey.contains("status") && statusExtra == null) {
-                    statusExtra = value
-                }
-                if ((lowerKey.contains("txnid") || lowerKey.contains("approvalref")) && txnId == null) {
-                    txnId = value
-                }
-                if ((lowerKey.contains("txnref") || lowerKey == "tr") && refId == null) {
-                    refId = value
-                }
-                if (lowerKey.contains("responsecode") && respCode == null) {
-                    respCode = value
-                }
-            }
-        }
-
-        val isSuccess = statusExtra?.uppercase(Locale.ROOT) in listOf("SUCCESS", "SUBMITTED", "00", "SUCCESSFUL") ||
-                respCode in listOf("00", "SUCCESS", "0") ||
-                (txnId != null && txnId.isNotBlank() && statusExtra?.uppercase(Locale.ROOT) != "FAILED")
-
-        if (statusExtra != null || txnId != null || refId != null) {
+        if (!statusExtra.isNullOrBlank()) {
+            val statusUpper = statusExtra.uppercase(Locale.ROOT)
+            val isSuccess = (statusUpper == "SUCCESS" || respCode == "00") && statusUpper != "FAILURE" && statusUpper != "FAILED" && statusUpper != "CANCELLED"
             return UpiPaymentResult(
                 isSuccess = isSuccess,
                 transactionId = txnId,
-                referenceId = refId ?: txnId,
+                referenceId = refId,
                 responseCode = respCode,
-                status = statusExtra ?: if (isSuccess) "SUCCESS" else "PENDING",
-                rawResponse = "Status=$statusExtra&txnId=$txnId&txnRef=$refId"
+                status = statusUpper,
+                rawResponse = "Status=$statusExtra&txnId=$txnId&txnRef=$refId&responseCode=$respCode"
             )
         }
 
@@ -154,7 +132,7 @@ object UpiPaymentGateway {
             transactionId = null,
             referenceId = null,
             responseCode = null,
-            status = "WINDOW_CLOSED",
+            status = "AWAITING_VERIFICATION",
             rawResponse = null
         )
     }
@@ -182,15 +160,16 @@ object UpiPaymentGateway {
 
         val status = params["status"]?.uppercase(Locale.ROOT) ?: "UNKNOWN"
         val txnId = params["txnid"] ?: params["approvalrefno"]
-        val refId = params["txnref"] ?: params["tr"]
+        val refId = params["txnref"]
         val responseCode = params["responsecode"]
 
-        val isSuccess = status == "SUCCESS" || status.contains("SUCCESS") || responseCode == "00" || status == "SUBMITTED" || (txnId != null && txnId.length >= 6)
+        // Strictly verify SUCCESS - never accept FAILURE, CANCELLED, or UNKNOWN
+        val isSuccess = (status == "SUCCESS" || responseCode == "00") && status != "FAILURE" && status != "FAILED" && status != "CANCELLED"
 
         return UpiPaymentResult(
             isSuccess = isSuccess,
             transactionId = txnId,
-            referenceId = refId ?: txnId,
+            referenceId = refId,
             responseCode = responseCode,
             status = status,
             rawResponse = responseString
@@ -199,7 +178,8 @@ object UpiPaymentGateway {
 
     fun isValidUtrReference(utr: String): Boolean {
         val cleaned = utr.trim()
-        return cleaned.length >= 6
+        // Standard bank UTR / UPI reference is typically 12 alphanumeric characters or digits
+        return cleaned.length >= 6 && !cleaned.contains(" ")
     }
 
     fun generateUninstallToken(): String {

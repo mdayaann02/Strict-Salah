@@ -7,8 +7,8 @@ import androidx.room.PrimaryKey
 data class UserProfileEntity(
     @PrimaryKey
     val id: Int = 1,
-    val freeSkipsRemaining: Int = 10, // Strictly 10 chances initially
-    val initialFreeSkips: Int = 10,
+    val freeSkipsRemaining: Int = 3, // Strictly 3 chances initially
+    val initialFreeSkips: Int = 3,
     val totalPenaltiesPaid: Int = 0, // Sum in INR ₹
     val totalUninstallPenaltiesPaid: Int = 0, // Total ₹ paid for uninstallation unlocking
     val isUninstallUnlocked: Boolean = false, // If penalty paid, uninstallation clearance is active

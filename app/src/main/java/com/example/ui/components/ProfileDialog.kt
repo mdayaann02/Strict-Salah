@@ -380,7 +380,7 @@ fun ProfileDialog(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "v2.0 Official Edition",
+                                text = "v3.0 Official Edition",
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold
@@ -542,10 +542,10 @@ fun ProfileDialog(
                                 ) {
                                     Text(text = "Free Skips Left", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text(
-                                        text = "${profile.freeSkipsRemaining}/10",
+                                        text = "${profile.freeSkipsRemaining}/3",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp,
-                                        color = if (profile.freeSkipsRemaining <= 2) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                        color = if (profile.freeSkipsRemaining <= 1) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
@@ -619,26 +619,35 @@ fun ProfileDialog(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Select your preferred app launcher icon & styling theme according to gender.",
-                    fontSize = 12.sp,
+                    text = "Select your personalized app icon & styling theme.",
+                    fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     AppLogoTheme.entries.forEach { logoTheme ->
                         val isSelected = profile.appLogoTheme.equals(logoTheme.key, ignoreCase = true)
+                        val themeAccent = when (logoTheme) {
+                            AppLogoTheme.BROTHER -> Color(0xFF10B981)
+                            AppLogoTheme.SISTER -> Color(0xFFF43F5E)
+                            AppLogoTheme.DEFAULT -> Color(0xFF3B82F6)
+                        }
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            color = if (isSelected) themeAccent.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .weight(1f)
                                 .border(
                                     width = if (isSelected) 2.dp else 1.dp,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                    color = if (isSelected) themeAccent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                                     shape = RoundedCornerShape(12.dp)
                                 )
+                                .clip(RoundedCornerShape(12.dp))
                                 .clickable {
                                     val gender = when (logoTheme) {
                                         AppLogoTheme.BROTHER -> "BROTHER"
@@ -648,70 +657,70 @@ fun ProfileDialog(
                                     onUpdateGenderAndLogo(gender, logoTheme.key)
                                 }
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Column(
+                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 6.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Image(
-                                    painter = painterResource(id = logoTheme.drawableRes),
-                                    contentDescription = logoTheme.title,
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                )
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = logoTheme.title,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
+                                Box(contentAlignment = Alignment.Center) {
+                                    Image(
+                                        painter = painterResource(id = logoTheme.drawableRes),
+                                        contentDescription = logoTheme.title,
+                                        modifier = Modifier
+                                            .size(46.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                    )
+                                    if (isSelected) {
                                         Surface(
-                                            shape = RoundedCornerShape(4.dp),
-                                            color = when (logoTheme) {
-                                                AppLogoTheme.BROTHER -> Color(0xFF065F46).copy(alpha = 0.2f)
-                                                AppLogoTheme.SISTER -> Color(0xFFBE185D).copy(alpha = 0.2f)
-                                                AppLogoTheme.DEFAULT -> Color(0xFF1E3A8A).copy(alpha = 0.2f)
-                                            }
+                                            shape = CircleShape,
+                                            color = themeAccent,
+                                            modifier = Modifier
+                                                .size(18.dp)
+                                                .align(Alignment.BottomEnd)
                                         ) {
-                                            Text(
-                                                text = logoTheme.genderLabel,
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                                color = when (logoTheme) {
-                                                    AppLogoTheme.BROTHER -> Color(0xFF047857)
-                                                    AppLogoTheme.SISTER -> Color(0xFFDB2777)
-                                                    AppLogoTheme.DEFAULT -> Color(0xFF2563EB)
-                                                }
-                                            )
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Selected",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                            }
                                         }
                                     }
-                                    Text(
-                                        text = logoTheme.subtitle,
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
                                 }
 
-                                RadioButton(
-                                    selected = isSelected,
-                                    onClick = {
-                                        val gender = when (logoTheme) {
-                                            AppLogoTheme.BROTHER -> "BROTHER"
-                                            AppLogoTheme.SISTER -> "SISTER"
-                                            else -> "NEUTRAL"
-                                        }
-                                        onUpdateGenderAndLogo(gender, logoTheme.key)
-                                    }
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Text(
+                                    text = when (logoTheme) {
+                                        AppLogoTheme.DEFAULT -> "Universal"
+                                        AppLogoTheme.BROTHER -> "Brother"
+                                        AppLogoTheme.SISTER -> "Sister"
+                                    },
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center
                                 )
+
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = themeAccent.copy(alpha = 0.15f),
+                                    modifier = Modifier.padding(top = 2.dp)
+                                ) {
+                                    Text(
+                                        text = when (logoTheme) {
+                                            AppLogoTheme.DEFAULT -> "Universal"
+                                            AppLogoTheme.BROTHER -> "Masculine"
+                                            AppLogoTheme.SISTER -> "Feminine"
+                                        },
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = themeAccent,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
                         }
                     }

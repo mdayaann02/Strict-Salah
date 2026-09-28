@@ -48,13 +48,19 @@ class PrayerRepository(
         if (profile == null) {
             profile = UserProfileEntity(
                 id = 1,
-                freeSkipsRemaining = 10,
-                initialFreeSkips = 10,
+                freeSkipsRemaining = 3,
+                initialFreeSkips = 3,
                 cityName = "Mumbai, IN (Auto GPS)",
                 latitude = 19.0760,
                 longitude = 72.8777
             )
             prayerDao.insertOrUpdateProfile(profile)
+        } else if (profile.freeSkipsRemaining > 3 && profile.initialFreeSkips == 10) {
+            profile = profile.copy(
+                freeSkipsRemaining = 3,
+                initialFreeSkips = 3
+            )
+            prayerDao.updateProfile(profile)
         }
         return profile
     }

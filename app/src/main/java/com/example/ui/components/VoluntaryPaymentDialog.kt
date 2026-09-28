@@ -92,13 +92,17 @@ fun VoluntaryPaymentDialog(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         val parsed = UpiPaymentGateway.parseUpiResponseIntent(result.data)
-        if (parsed.isSuccess || result.resultCode == Activity.RESULT_OK) {
-            val ref = parsed.transactionId ?: parsed.referenceId ?: "UPI-PAY-${System.currentTimeMillis() % 1000000}"
+        if (parsed.isSuccess && !parsed.transactionId.isNullOrBlank()) {
+            val ref = parsed.transactionId!!
             upiRefInput = ref
             statusMessage = "✅ Payment approved via UPI Intent! Ref: $ref"
             onConfirmPayment(selectedAmount, paymentNote, selectedApp, ref)
         } else {
-            statusMessage = "Returned from UPI app (${parsed.status}). Enter UTR reference if paid."
+            statusMessage = if (parsed.status == "FAILED" || parsed.status == "FAILURE") {
+                "❌ Payment failed or cancelled in UPI app. Please retry or enter valid 12-digit UTR below."
+            } else {
+                "ℹ️ Returned from UPI app. If payment completed, enter the 12-digit Bank UTR / Reference ID below to verify."
+            }
         }
     }
 
@@ -372,12 +376,14 @@ fun VoluntaryPaymentDialog(
             }
         },
         confirmButton = {
+            val isUtrValid = upiRefInput.trim().length >= 6
             Button(
                 onClick = {
-                    val ref = upiRefInput.trim().ifBlank { "UPI-PAY-${System.currentTimeMillis() % 1000000}" }
-                    onConfirmPayment(selectedAmount, paymentNote, selectedApp, ref)
+                    if (isUtrValid) {
+                        onConfirmPayment(selectedAmount, paymentNote, selectedApp, upiRefInput.trim())
+                    }
                 },
-                enabled = !isProcessing,
+                enabled = !isProcessing && isUtrValid,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                 shape = RoundedCornerShape(10.dp)
             ) {
