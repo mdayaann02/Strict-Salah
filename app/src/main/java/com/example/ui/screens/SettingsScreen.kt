@@ -497,29 +497,30 @@ fun SettingsScreen(
             onOpenRegistration = onOpenJanamazRegistration
         )
 
-        // 8. Anti-Close Guard & ₹100 Uninstall Commitment Pledge Card
+        // 8. Strict Salah v3.0 Anti-Close & ₹100 Uninstallation Penalty Card
         val context = LocalContext.current
         val adminComponent = remember { ComponentName(context, StrictSalahAdminReceiver::class.java) }
         val dpm = remember { context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager }
         val isAdminActive = dpm?.isAdminActive(adminComponent) == true
+        val isUnlocked = profile.isUninstallUnlocked && (profile.uninstallUnlockExpiry == 0L || System.currentTimeMillis() < profile.uninstallUnlockExpiry)
 
         Card(
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD32F2F).copy(alpha = 0.25f)),
+            border = androidx.compose.foundation.BorderStroke(1.dp, if (isUnlocked) Color(0xFF2E7D32).copy(alpha = 0.4f) else Color(0xFFD32F2F).copy(alpha = 0.35f)),
             modifier = Modifier.fillMaxWidth().testTag("anti_close_and_uninstall_card")
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Security,
+                        imageVector = if (isUnlocked) Icons.Default.Shield else Icons.Default.Security,
                         contentDescription = null,
-                        tint = Color(0xFFD32F2F),
+                        tint = if (isUnlocked) Color(0xFF2E7D32) else Color(0xFFD32F2F),
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Anti-Close & Anti-Uninstall Guard",
+                        text = "Strict Salah v3.0 Uninstallation Guard",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium
                     )
@@ -527,15 +528,47 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "• Active Lockdown Foreground Service prevents closing or swiping the app from recent tasks during prayer times.\n" +
-                            "• Any attempt to clear the app from recents will immediately relaunch Strict Salah until Janamaz is verified.\n" +
-                            "• Uninstalling or quitting the strict enforcement requires settling the ₹100 exit commitment pledge via UPI.",
+                    text = "• Active Foreground Enforcement prevents closing or bypassing prayer lockdowns from recent applications.\n" +
+                            "• Any attempt to swipe the app away during Salah window immediately triggers automatic relaunch.\n" +
+                            "• Uninstallation requires an official ₹100 discipline penalty sent via secure UPI to 8217317725@superyes.",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 16.sp
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
+
+                // Clearance status badge
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (isUnlocked) Color(0xFF2E7D32).copy(alpha = 0.12f) else Color(0xFFD32F2F).copy(alpha = 0.12f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (isUnlocked) "🔓 Uninstallation Clearance Active" else "🔒 Uninstallation Strictly Protected",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = if (isUnlocked) Color(0xFF2E7D32) else Color(0xFFD32F2F)
+                            )
+                            Text(
+                                text = if (isUnlocked)
+                                    "Clearance Pass: ${profile.uninstallUnlockToken.ifBlank { "ACTIVE" }}"
+                                else
+                                    "₹100 Penalty fee required before uninstallation",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Device Admin Protection Toggle / Setup
                 Surface(
@@ -579,25 +612,25 @@ fun SettingsScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // ₹100 Uninstall / Exit Pledge Settlement Button
+                // ₹100 Uninstall Penalty / Unlock Button
                 Button(
                     onClick = onOpenDeRegistrationPledge,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFD32F2F)
+                        containerColor = if (isUnlocked) Color(0xFF2E7D32) else Color(0xFFD32F2F)
                     ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth().testTag("open_deregistration_pledge_button")
                 ) {
                     Icon(
-                        imageVector = Icons.Default.LockPerson,
+                        imageVector = if (isUnlocked) Icons.Default.Shield else Icons.Default.LockPerson,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Settle ₹100 Pledge to Uninstall / De-register",
+                        text = if (isUnlocked) "Manage Clearance / Open App Settings" else "Pay ₹100 UPI Penalty to Unlock Uninstallation",
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
                     )
@@ -618,16 +651,17 @@ fun SettingsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Strict Salah v2.4",
+                    text = "Strict Salah v3.0",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Qibla Direction Finder • AMOLED Theme • AI Janamaz Verification • Google Drive",
+                    text = "Secure UPI Payment Gateway • Qibla Compass Finder • AMOLED Theme • AI Janamaz Verification",
                     fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
         }

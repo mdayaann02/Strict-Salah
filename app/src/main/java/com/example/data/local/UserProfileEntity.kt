@@ -10,6 +10,10 @@ data class UserProfileEntity(
     val freeSkipsRemaining: Int = 10, // Strictly 10 chances initially
     val initialFreeSkips: Int = 10,
     val totalPenaltiesPaid: Int = 0, // Sum in INR ₹
+    val totalUninstallPenaltiesPaid: Int = 0, // Total ₹ paid for uninstallation unlocking
+    val isUninstallUnlocked: Boolean = false, // If penalty paid, uninstallation clearance is active
+    val uninstallUnlockExpiry: Long = 0L, // Expiry timestamp for uninstall permission
+    val uninstallUnlockToken: String = "", // Secure token for uninstall authorization
     val currentStreak: Int = 0,
     val bestStreak: Int = 0,
     val cityName: String = "Detecting GPS...",

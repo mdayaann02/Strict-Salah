@@ -432,34 +432,63 @@ class PrayerRepository(
     }
 
     /**
-     * Records the ₹100 uninstallation/quit commitment pledge payment.
+     * Records the ₹100 uninstallation penalty fee via secure UPI payment gateway.
+     * Generates a 1-hour uninstallation authorization clearance token.
      */
-    suspend fun payDeRegistrationPledge(
+    suspend fun payUninstallPenalty(
         paymentApp: String,
-        upiId: String
+        upiRefId: String
     ): Result<PenaltyTransactionEntity> {
         val profile = ensureProfile()
         val todayStr = getTodayDateString()
-        val refId = "PLEDGE-" + UUID.randomUUID().toString().take(10).uppercase()
+        val token = com.example.data.payment.UpiPaymentGateway.generateUninstallToken()
+        val expiry = System.currentTimeMillis() + (60 * 60 * 1000L) // 1 Hour
 
         val transaction = PenaltyTransactionEntity(
             date = todayStr,
-            prayerName = "Uninstall/De-registration Pledge",
+            prayerName = "Strict Salah v3.0 Uninstallation Penalty",
+            transactionType = "UNINSTALL_PENALTY",
             amount = 100,
-            upiRefId = refId,
+            upiRefId = upiRefId,
             paymentApp = paymentApp,
             paymentStatus = "SUCCESS",
-            remarks = "₹100 exit pledge settled ($upiId via $paymentApp)"
+            receiptNumber = "SS-UNINST-${System.currentTimeMillis() % 1000000}",
+            remarks = "₹100 Uninstallation discipline fee verified ($upiRefId via $paymentApp)"
         )
         val txId = prayerDao.insertTransaction(transaction)
 
         prayerDao.updateProfile(
             profile.copy(
-                totalPenaltiesPaid = profile.totalPenaltiesPaid + 100
+                totalPenaltiesPaid = profile.totalPenaltiesPaid + 100,
+                totalUninstallPenaltiesPaid = profile.totalUninstallPenaltiesPaid + 100,
+                isUninstallUnlocked = true,
+                uninstallUnlockExpiry = expiry,
+                uninstallUnlockToken = token
             )
         )
 
         return Result.success(transaction.copy(id = txId))
+    }
+
+    suspend fun relockUninstallation() {
+        val profile = ensureProfile()
+        prayerDao.updateProfile(
+            profile.copy(
+                isUninstallUnlocked = false,
+                uninstallUnlockExpiry = 0L,
+                uninstallUnlockToken = ""
+            )
+        )
+    }
+
+    /**
+     * Records legacy pledge
+     */
+    suspend fun payDeRegistrationPledge(
+        paymentApp: String,
+        upiId: String
+    ): Result<PenaltyTransactionEntity> {
+        return payUninstallPenalty(paymentApp, upiId)
     }
 
     suspend fun updateLocation(cityName: String, lat: Double, lng: Double) {

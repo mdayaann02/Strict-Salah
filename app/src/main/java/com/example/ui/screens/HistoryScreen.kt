@@ -417,13 +417,13 @@ fun PenaltyTransactionCard(transaction: PenaltyTransactionEntity) {
                 }
 
                 Text(
-                    text = "For ${transaction.prayerName} • ${transaction.paymentApp} • To: 8217317725@superyes",
+                    text = "${transaction.prayerName} • ${transaction.paymentApp} • To: 8217317725@superyes",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Text(
-                    text = "Ref: ${transaction.upiRefId} • $dateFormatted",
+                    text = "Receipt: ${transaction.receiptNumber} • Ref: ${transaction.upiRefId} • $dateFormatted",
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )

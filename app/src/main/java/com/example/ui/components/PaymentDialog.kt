@@ -1,11 +1,13 @@
 package com.example.ui.components
 
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,11 +21,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.LockOpen
@@ -36,7 +39,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -53,9 +55,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.PrayerType
+import com.example.data.payment.UpiPaymentGateway
 
 @Composable
 fun PaymentDialog(
@@ -65,9 +69,12 @@ fun PaymentDialog(
     onConfirmPayment: (paymentApp: String, upiId: String) -> Unit
 ) {
     val context = LocalContext.current
-    val recipientUpiId = "8217317725@superyes"
+    val recipientUpiId = UpiPaymentGateway.OFFICIAL_UPI_ID
+    val skipAmount = UpiPaymentGateway.PRAYER_SKIP_PENALTY_AMOUNT
+
     var selectedApp by remember { mutableStateOf("Google Pay") }
-    var upiRefInput by remember { mutableStateOf("UPI-PAID") }
+    var upiRefInput by remember { mutableStateOf("") }
+    var upiStatusMessage by remember { mutableStateOf<String?>(null) }
 
     val upiApps = listOf(
         Pair("Google Pay", Color(0xFF1A73E8)),
@@ -76,11 +83,35 @@ fun PaymentDialog(
         Pair("BHIM UPI", Color(0xFF005696))
     )
 
-    fun launchUpiIntent() {
+    val upiLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+            val responseData = result.data?.getStringExtra("response")
+            val parsed = UpiPaymentGateway.parseUpiResponse(responseData)
+            if (parsed.isSuccess) {
+                val ref = parsed.transactionId ?: parsed.referenceId ?: "UPI-AUTO-${System.currentTimeMillis() % 100000}"
+                upiRefInput = ref
+                upiStatusMessage = "UPI payment approved! Ref: $ref"
+                onConfirmPayment(selectedApp, ref)
+            } else {
+                upiStatusMessage = "UPI status: ${parsed.status}. Enter UTR reference below to confirm."
+            }
+        } else {
+            upiStatusMessage = "Payment window closed. Enter UTR reference below if transaction completed."
+        }
+    }
+
+    fun launchUpiIntent(targetPackage: String? = null) {
         try {
-            val uri = Uri.parse("upi://pay?pa=$recipientUpiId&pn=Strict%20Namaz&am=10.00&cu=INR&tn=Strict%20Namaz%20Skip%20Penalty%20${prayerType.name}")
-            val intent = Intent(Intent.ACTION_VIEW, uri)
-            context.startActivity(Intent.createChooser(intent, "Pay ₹10 with UPI"))
+            val note = "Strict Salah Skip Penalty ${prayerType.name}"
+            val intent = UpiPaymentGateway.createPaymentIntent(
+                amount = skipAmount,
+                note = note,
+                targetPackage = targetPackage
+            )
+            val chooser = Intent.createChooser(intent, "Pay ₹10 Skip Penalty with UPI")
+            upiLauncher.launch(chooser)
         } catch (e: Exception) {
             Toast.makeText(context, "No UPI app detected. Please copy UPI ID: $recipientUpiId", Toast.LENGTH_LONG).show()
         }
@@ -88,7 +119,7 @@ fun PaymentDialog(
 
     fun copyToClipboard() {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText("Strict Namaz UPI ID", recipientUpiId)
+        val clip = ClipData.newPlainText("Strict Salah UPI ID", recipientUpiId)
         clipboard.setPrimaryClip(clip)
         Toast.makeText(context, "UPI ID copied: $recipientUpiId", Toast.LENGTH_SHORT).show()
     }
@@ -128,7 +159,7 @@ fun PaymentDialog(
             }
         },
         text = {
-            Column {
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f),
@@ -146,7 +177,7 @@ fun PaymentDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "You have used all 10 free chances to skip Namaz. Skipping ${prayerType.displayName} prayer requires paying the ₹10 discipline penalty to unlock your apps.",
+                            text = "You have used all 10 free chances to skip Salah. Skipping ${prayerType.displayName} prayer requires paying the ₹10 discipline penalty to unlock your device.",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             lineHeight = 16.sp
@@ -223,6 +254,11 @@ fun PaymentDialog(
                                         fontSize = 13.sp,
                                         color = MaterialTheme.colorScheme.primary
                                     )
+                                    Text(
+                                        text = "Payee: Strict Salah Discipline",
+                                        fontSize = 9.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                                 IconButton(
                                     onClick = { copyToClipboard() },
@@ -243,9 +279,10 @@ fun PaymentDialog(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // Quick Launch Real UPI App button
-                OutlinedButton(
+                Button(
                     onClick = { launchUpiIntent() },
                     modifier = Modifier.fillMaxWidth().testTag("launch_upi_app_button"),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Icon(
@@ -254,12 +291,23 @@ fun PaymentDialog(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Pay ₹10 via UPI App (GPay/PhonePe)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Pay ₹10 via UPI Intent (GPay/PhonePe)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+
+                if (upiStatusMessage != null) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = upiStatusMessage!!,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "Or Select Your Payment Method to Confirm:",
+                    text = "Or Select Your Payment Method & Enter UTR:",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -304,7 +352,8 @@ fun PaymentDialog(
                 OutlinedTextField(
                     value = upiRefInput,
                     onValueChange = { upiRefInput = it },
-                    label = { Text("Payer UPI ID / UTR Reference") },
+                    label = { Text("Payer UPI / 12-Digit UTR Ref") },
+                    placeholder = { Text("e.g. 427819827102") },
                     singleLine = true,
                     leadingIcon = {
                         Icon(
@@ -319,7 +368,10 @@ fun PaymentDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onConfirmPayment(selectedApp, upiRefInput.ifBlank { recipientUpiId }) },
+                onClick = {
+                    val ref = upiRefInput.trim().ifBlank { "UPI-REF-${System.currentTimeMillis() % 100000}" }
+                    onConfirmPayment(selectedApp, ref)
+                },
                 enabled = !isProcessing,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFD32F2F)

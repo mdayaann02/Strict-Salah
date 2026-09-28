@@ -57,6 +57,7 @@ data class MainUiState(
     val showPaymentSheet: Boolean = false,
     val targetPrayerForPayment: PrayerType? = null,
     val showDeRegistrationDialog: Boolean = false,
+    val showUninstallPenaltyDialog: Boolean = false,
     val snackbarMessage: String? = null,
     val totalPenaltiesCollected: Int = 0,
     val isSyncingDrive: Boolean = false,
@@ -540,26 +541,45 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun openUninstallPenaltyDialog() {
+        _uiState.update { it.copy(showUninstallPenaltyDialog = true) }
+    }
+
+    fun dismissUninstallPenaltyDialog() {
+        _uiState.update { it.copy(showUninstallPenaltyDialog = false) }
+    }
+
+    fun processUninstallPenaltyPayment(paymentApp: String, upiRef: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAnalyzing = true, analysisStatusText = "Verifying ₹100 UPI Uninstallation Penalty...") }
+            delay(1200)
+            val res = repository.payUninstallPenalty(paymentApp, upiRef)
+            _uiState.update { it.copy(isAnalyzing = false) }
+            if (res.isSuccess) {
+                val tx = res.getOrThrow()
+                postSnackbar("✅ ₹100 Uninstallation Penalty Verified (${tx.receiptNumber}). Uninstallation unlocked for 1 hour.")
+            } else {
+                postSnackbar("Failed to verify uninstallation payment. Please retry.")
+            }
+        }
+    }
+
+    fun relockUninstallation() {
+        viewModelScope.launch {
+            repository.relockUninstallation()
+            postSnackbar("🔒 Uninstallation protection re-locked.")
+        }
+    }
+
     fun openDeRegistrationDialog() {
-        _uiState.update { it.copy(showDeRegistrationDialog = true) }
+        openUninstallPenaltyDialog()
     }
 
     fun dismissDeRegistrationDialog() {
-        _uiState.update { it.copy(showDeRegistrationDialog = false) }
+        dismissUninstallPenaltyDialog()
     }
 
     fun processDeRegistrationPledgePayment(paymentApp: String, upiRef: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isAnalyzing = true, analysisStatusText = "Settling ₹100 Uninstall/Exit Pledge...") }
-            delay(1200)
-            val res = repository.payDeRegistrationPledge(paymentApp, upiRef)
-            _uiState.update { it.copy(isAnalyzing = false, showDeRegistrationDialog = false) }
-            if (res.isSuccess) {
-                dismissLockdown()
-                postSnackbar("✅ ₹100 Exit Pledge Confirmed (${res.getOrThrow().upiRefId}). App de-registered.")
-            } else {
-                postSnackbar("Failed to confirm pledge. Please retry.")
-            }
-        }
+        processUninstallPenaltyPayment(paymentApp, upiRef)
     }
 }

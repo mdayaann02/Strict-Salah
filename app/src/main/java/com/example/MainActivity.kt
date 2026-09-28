@@ -60,7 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.data.model.PrayerType
-import com.example.ui.components.DeRegistrationPledgeDialog
+import com.example.ui.components.UninstallPenaltyDialog
 import com.example.ui.components.JanamazRegistrationDialog
 import com.example.ui.components.ProfileDialog
 import com.example.ui.screens.HistoryScreen
@@ -403,12 +403,15 @@ fun MainAppContent(viewModel: MainViewModel) {
                 )
             }
 
-            if (uiState.showDeRegistrationDialog) {
-                DeRegistrationPledgeDialog(
+            if (uiState.showUninstallPenaltyDialog || uiState.showDeRegistrationDialog) {
+                UninstallPenaltyDialog(
+                    isUninstallUnlocked = uiState.profile.isUninstallUnlocked && (System.currentTimeMillis() < uiState.profile.uninstallUnlockExpiry || uiState.profile.uninstallUnlockExpiry == 0L && uiState.profile.isUninstallUnlocked),
+                    unlockToken = uiState.profile.uninstallUnlockToken,
+                    unlockExpiry = uiState.profile.uninstallUnlockExpiry,
                     isProcessing = uiState.isAnalyzing,
-                    onDismiss = { viewModel.dismissDeRegistrationDialog() },
-                    onConfirmPledgePayment = { app, upiRef ->
-                        viewModel.processDeRegistrationPledgePayment(app, upiRef)
+                    onDismiss = { viewModel.dismissUninstallPenaltyDialog() },
+                    onConfirmUninstallPayment = { app, upiRef ->
+                        viewModel.processUninstallPenaltyPayment(app, upiRef)
                     }
                 )
             }

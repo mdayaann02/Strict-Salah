@@ -72,4 +72,26 @@ class ExampleUnitTest {
         }
         assertEquals(10, penaltiesPaid)
     }
+
+    @Test
+    fun testUpiPaymentGatewayUriAndResponseParsing() {
+        val uri = com.example.data.payment.UpiPaymentGateway.buildUpiUri(
+            amount = 100.00,
+            note = "Strict Salah v3.0 Uninstallation Penalty",
+            transactionRef = "SS-TEST-1234"
+        )
+        assertNotNull(uri)
+        assertTrue(uri.toString().contains("8217317725@superyes"))
+        assertTrue(uri.toString().contains("100.00"))
+
+        val parsedSuccess = com.example.data.payment.UpiPaymentGateway.parseUpiResponse(
+            "txnId=TXN123456&responseCode=00&ApprovalRefNo=987654&Status=SUCCESS&txnRef=SS-TEST-1234"
+        )
+        assertTrue(parsedSuccess.isSuccess)
+        assertEquals("SUCCESS", parsedSuccess.status)
+        assertEquals("TXN123456", parsedSuccess.transactionId)
+
+        val token = com.example.data.payment.UpiPaymentGateway.generateUninstallToken()
+        assertTrue(token.startsWith("SS-UNINSTALL-"))
+    }
 }
