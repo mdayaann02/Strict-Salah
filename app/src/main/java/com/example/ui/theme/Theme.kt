@@ -16,7 +16,8 @@ enum class AppThemeMode {
     SYSTEM,
     LIGHT,
     DARK,
-    AMOLED
+    AMOLED,
+    LIQUID_GLASS
 }
 
 enum class AppColorPalette {
@@ -30,6 +31,7 @@ enum class AppColorPalette {
 fun getCustomColorScheme(
     isDark: Boolean,
     isAmoled: Boolean,
+    isLiquidGlass: Boolean = false,
     palette: AppColorPalette
 ): ColorScheme {
     val (pLight, onPLight, pContLight, onPContLight) = when (palette) {
@@ -47,6 +49,26 @@ fun getCustomColorScheme(
     }
 
     return when {
+        isLiquidGlass -> darkColorScheme(
+            primary = LiquidAqua,
+            onPrimary = Color(0xFF002026),
+            primaryContainer = Color(0xFF004D5C),
+            onPrimaryContainer = Color(0xFFB8F4FF),
+            secondary = LiquidTeal,
+            onSecondary = Color(0xFF00382B),
+            secondaryContainer = Color(0xFF00523F),
+            onSecondaryContainer = Color(0xFF75F8D3),
+            tertiary = LiquidEmerald,
+            background = Color(0xFF061412),
+            onBackground = Color(0xFFE0F4F0),
+            surface = Color(0xFF0D221D),
+            onSurface = Color(0xFFE0F4F0),
+            surfaceVariant = Color(0xFF16322B),
+            onSurfaceVariant = Color(0xFFA0C4BC),
+            outline = Color(0xFF2E6559),
+            outlineVariant = Color(0xFF1B3D36),
+            error = AlertLockRedDark
+        )
         isAmoled -> darkColorScheme(
             primary = pDark,
             onPrimary = onPDark,
@@ -110,17 +132,18 @@ private data class Quad(val a: Color, val b: Color, val c: Color, val d: Color)
 
 @Composable
 fun MyApplicationTheme(
-    themeMode: String = "SYSTEM",
+    themeMode: String = "LIQUID_GLASS",
     colorPalette: String = "EMERALD",
     content: @Composable () -> Unit
 ) {
     val systemInDark = isSystemInDarkTheme()
+    val isLiquidGlass = themeMode.equals("LIQUID_GLASS", ignoreCase = true) || themeMode.equals("GLASS", ignoreCase = true)
+    val isAmoled = themeMode.equals("AMOLED", ignoreCase = true)
     val isDark = when (themeMode.uppercase()) {
         "LIGHT" -> false
-        "DARK", "AMOLED" -> true
+        "DARK", "AMOLED", "LIQUID_GLASS", "GLASS" -> true
         else -> systemInDark
     }
-    val isAmoled = themeMode.equals("AMOLED", ignoreCase = true)
     val palette = try {
         AppColorPalette.valueOf(colorPalette.uppercase())
     } catch (e: Exception) {
@@ -129,6 +152,7 @@ fun MyApplicationTheme(
 
     val context = LocalContext.current
     val colorScheme = when {
+        isLiquidGlass -> getCustomColorScheme(isDark = true, isAmoled = false, isLiquidGlass = true, palette = palette)
         palette == AppColorPalette.DYNAMIC && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val base = if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             if (isAmoled) {
@@ -141,7 +165,7 @@ fun MyApplicationTheme(
                 base
             }
         }
-        else -> getCustomColorScheme(isDark = isDark, isAmoled = isAmoled, palette = palette)
+        else -> getCustomColorScheme(isDark = isDark, isAmoled = isAmoled, isLiquidGlass = false, palette = palette)
     }
 
     MaterialTheme(

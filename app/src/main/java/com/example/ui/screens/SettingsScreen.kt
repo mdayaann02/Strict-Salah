@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -159,6 +160,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val themeModes = listOf(
+                    Triple("LIQUID_GLASS", "Liquid", Icons.Default.WaterDrop),
                     Triple("SYSTEM", "System", Icons.Default.BrightnessAuto),
                     Triple("LIGHT", "Light", Icons.Default.LightMode),
                     Triple("DARK", "Dark", Icons.Default.DarkMode),

@@ -52,20 +52,35 @@ val GoldSecondaryDark = Color(0xFFF9BD38)
 val GoldSecondaryContainer = Color(0xFFFFDF9E)
 
 // ================= LIGHT THEME SURFACES (PARCHMENT) =================
-val ParchmentBgLight = Color(0xFFF7F5EE)
+val ParchmentBgLight = Color(0xFFF4F8F6)
 val ParchmentSurfaceLight = Color(0xFFFFFFFF)
-val ParchmentSurfaceVariantLight = Color(0xFFE5E0D5)
+val ParchmentSurfaceVariantLight = Color(0xFFE2EDE7)
 
 // ================= DARK THEME SURFACES (NIGHT) =================
-val NightBgDark = Color(0xFF0A120E)
-val NightSurfaceDark = Color(0xFF131E19)
-val NightSurfaceVariantDark = Color(0xFF1E2F27)
+val NightBgDark = Color(0xFF08130E)
+val NightSurfaceDark = Color(0xFF101F18)
+val NightSurfaceVariantDark = Color(0xFF182C22)
 
 // ================= AMOLED TRUE BLACK SURFACES (#000000) =================
 val AmoledBg = Color(0xFF000000)
-val AmoledSurface = Color(0xFF050907)
-val AmoledSurfaceVariant = Color(0xFF101914)
-val AmoledBorder = Color(0xFF1F3327)
+val AmoledSurface = Color(0xFF040A07)
+val AmoledSurfaceVariant = Color(0xFF0E1A13)
+val AmoledBorder = Color(0xFF182E22)
+
+// ================= LIQUID GLASS SPECIAL EFFECTS =================
+val GlassSurfaceLight = Color(0xCCFFFFFF)
+val GlassSurfaceDark = Color(0xB810221A)
+val GlassSurfaceAmoled = Color(0xA6030906)
+val GlassBorderLight = Color(0x80FFFFFF)
+val GlassBorderDark = Color(0x404EE0A8)
+val GlassBorderAmoled = Color(0x332CE8A2)
+val GlassHighlight = Color(0x99FFFFFF)
+val LiquidAqua = Color(0xFF00E5FF)
+val LiquidTeal = Color(0xFF1DE9B6)
+val LiquidEmerald = Color(0xFF00E676)
+val LiquidWaterBlue = Color(0xFF29B6F6)
+val LiquidGlow = Color(0x4D00E5FF)
+val LiquidDropletShadow = Color(0x40000000)
 
 // ================= ALERT LOCK RED =================
 val AlertLockRed = Color(0xFFDC2626)
