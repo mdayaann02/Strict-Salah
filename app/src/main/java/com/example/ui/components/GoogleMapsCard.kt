@@ -95,77 +95,17 @@ fun GoogleMapsCard(
         LocationServices.getFusedLocationProviderClient(context)
     }
 
-    fun reverseGeocodeAndSave(lat: Double, lng: Double) {
-        scope.launch(Dispatchers.IO) {
-            var cityName = "Detected Location"
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    val geocoder = Geocoder(context, Locale.getDefault())
-                    geocoder.getFromLocation(lat, lng, 1) { addresses ->
-                        if (addresses.isNotEmpty()) {
-                            val addr = addresses[0]
-                            val locality = addr.locality ?: addr.subAdminArea ?: addr.adminArea ?: "Detected Location"
-                            val country = addr.countryName ?: ""
-                            cityName = if (country.isNotBlank()) "$locality, $country" else locality
-                        }
-                        scope.launch(Dispatchers.Main) {
-                            onUpdateLocation(cityName, lat, lng)
-                            isDetectingLocation = false
-                            Toast.makeText(context, "📍 Exact GPS updated via Google Maps: $cityName", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                    return@launch
-                } else {
-                    @Suppress("DEPRECATION")
-                    val geocoder = Geocoder(context, Locale.getDefault())
-                    val addresses = geocoder.getFromLocation(lat, lng, 1)
-                    if (!addresses.isNullOrEmpty()) {
-                        val addr = addresses[0]
-                        val locality = addr.locality ?: addr.subAdminArea ?: addr.adminArea ?: "Detected Location"
-                        val country = addr.countryName ?: ""
-                        cityName = if (country.isNotBlank()) "$locality, $country" else locality
-                    }
-                }
-            } catch (e: Exception) {
-                cityName = String.format(Locale.US, "GPS (%.3f, %.3f)", lat, lng)
-            }
-            withContext(Dispatchers.Main) {
-                onUpdateLocation(cityName, lat, lng)
-                isDetectingLocation = false
-                Toast.makeText(context, "📍 Exact GPS updated: $cityName", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
     fun fetchCurrentGpsLocation() {
-        val finePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-        val coarsePerm = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-
-        if (finePerm == PackageManager.PERMISSION_GRANTED || coarsePerm == PackageManager.PERMISSION_GRANTED) {
-            isDetectingLocation = true
-            fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-                .addOnSuccessListener { location: Location? ->
-                    if (location != null) {
-                        reverseGeocodeAndSave(location.latitude, location.longitude)
-                    } else {
-                        // Fallback to last known location
-                        fusedLocationClient.lastLocation.addOnSuccessListener { lastLoc ->
-                            if (lastLoc != null) {
-                                reverseGeocodeAndSave(lastLoc.latitude, lastLoc.longitude)
-                            } else {
-                                isDetectingLocation = false
-                                Toast.makeText(context, "Could not acquire GPS fix. Please turn on device Location.", Toast.LENGTH_LONG).show()
-                            }
-                        }.addOnFailureListener {
-                            isDetectingLocation = false
-                            Toast.makeText(context, "Failed to get location", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-                .addOnFailureListener {
-                    isDetectingLocation = false
-                    Toast.makeText(context, "GPS error: ${it.localizedMessage}", Toast.LENGTH_SHORT).show()
-                }
+        isDetectingLocation = true
+        scope.launch {
+            val result = com.example.data.location.LocationHelper.detectCurrentLocation(context)
+            isDetectingLocation = false
+            if (result != null) {
+                onUpdateLocation(result.cityName, result.latitude, result.longitude)
+                Toast.makeText(context, "📍 Exact GPS updated via Google Maps: ${result.cityName}", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Could not acquire GPS fix. Please turn on device Location in Settings.", Toast.LENGTH_LONG).show()
+            }
         }
     }
 

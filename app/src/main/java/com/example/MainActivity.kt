@@ -70,6 +70,7 @@ import com.example.ui.components.NavTabItem
 import com.example.ui.components.UninstallPenaltyDialog
 import com.example.ui.components.JanamazRegistrationDialog
 import com.example.ui.components.ProfileDialog
+import com.example.ui.components.PermissionsOnboardingDialog
 import com.example.ui.screens.HistoryScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.LockdownScreen
@@ -166,23 +167,30 @@ fun MainAppScreen(viewModel: MainViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    // Runtime Permission for Notifications (Android 13+)
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { /* Handled */ }
-
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-        }
+    fun checkAllPermissionsGranted(): Boolean {
+        val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasLoc = fine || coarse
+        val hasNotif = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else true
+        val hasCam = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        val hasOverlay = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Settings.canDrawOverlays(context)
+        } else true
+        return hasLoc && hasNotif && hasCam && hasOverlay
     }
 
-    // Permission for SYSTEM_ALERT_WINDOW (Overlay)
+    var showPermissionsDialog by rememberSaveable { mutableStateOf(!checkAllPermissionsGranted()) }
+    var hasAutoDetectedGpsOnStart by rememberSaveable { mutableStateOf(false) }
+
+    // Auto-detect GPS if location permission is already available on start
     LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
-            // Overlay permission info shown in UI
+        val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if ((fine || coarse) && !hasAutoDetectedGpsOnStart) {
+            hasAutoDetectedGpsOnStart = true
+            viewModel.detectCurrentGpsLocation()
         }
     }
 
@@ -350,7 +358,7 @@ fun MainAppScreen(viewModel: MainViewModel) {
                     )
                     AppScreen.QIBLA -> QiblaScreen(
                         uiState = uiState,
-                        onRefreshLocation = { viewModel.triggerGoogleSearchSync() }
+                        onRefreshLocation = { viewModel.detectCurrentGpsLocation() }
                     )
                     AppScreen.STATISTICS -> StatisticsScreen(
                         uiState = uiState,
@@ -382,6 +390,19 @@ fun MainAppScreen(viewModel: MainViewModel) {
                     AppScreen.LOCKDOWN -> {
                         // Handled above
                     }
+                }
+
+                if (showPermissionsDialog) {
+                    PermissionsOnboardingDialog(
+                        onAllPermissionsGranted = {
+                            showPermissionsDialog = false
+                            viewModel.detectCurrentGpsLocation()
+                        },
+                        onDismiss = {
+                            showPermissionsDialog = false
+                            viewModel.detectCurrentGpsLocation()
+                        }
+                    )
                 }
 
                 if (showProfileDialog) {

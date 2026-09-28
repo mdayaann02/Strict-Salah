@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.UserProfileEntity
+import kotlinx.coroutines.launch
 
 @Composable
 fun LocationPickerBar(
@@ -207,6 +208,10 @@ fun LocationEditDialog(
     onDismiss: () -> Unit,
     onConfirm: (city: String, lat: Double, lng: Double) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var isDetectingGpsInDialog by remember { mutableStateOf(false) }
+
     var cityText by remember { mutableStateOf(currentCity) }
     var latText by remember { mutableStateOf(currentLat.toString()) }
     var lngText by remember { mutableStateOf(currentLng.toString()) }
@@ -234,6 +239,43 @@ fun LocationEditDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Detect GPS Button inside dialog
+                Button(
+                    onClick = {
+                        isDetectingGpsInDialog = true
+                        scope.launch {
+                            val res = com.example.data.location.LocationHelper.detectCurrentLocation(context)
+                            isDetectingGpsInDialog = false
+                            if (res != null) {
+                                cityText = res.cityName
+                                latText = res.latitude.toString()
+                                lngText = res.longitude.toString()
+                                android.widget.Toast.makeText(context, "📍 Detected: ${res.cityName}", android.widget.Toast.LENGTH_SHORT).show()
+                            } else {
+                                android.widget.Toast.makeText(context, "Could not get GPS fix. Please turn on Location.", android.widget.Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                ) {
+                    if (isDetectingGpsInDialog) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Detecting Live GPS...", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    } else {
+                        Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Auto-Detect Exact Current GPS", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(

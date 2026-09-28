@@ -64,7 +64,8 @@ data class MainUiState(
     val lastDriveBackupTime: String? = null,
     val showJanamazRegistrationDialog: Boolean = false,
     val isRegisteringJanamaz: Boolean = false,
-    val registeredJanamazBitmaps: List<Bitmap> = emptyList()
+    val registeredJanamazBitmaps: List<Bitmap> = emptyList(),
+    val isDetectingGps: Boolean = false
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -407,6 +408,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.updateLocation(city, lat, lng)
             triggerGoogleSearchSync()
+        }
+    }
+
+    fun detectCurrentGpsLocation(onComplete: ((Boolean) -> Unit)? = null) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDetectingGps = true) }
+            val gpsResult = com.example.data.location.LocationHelper.detectCurrentLocation(getApplication())
+            if (gpsResult != null) {
+                repository.updateLocation(gpsResult.cityName, gpsResult.latitude, gpsResult.longitude)
+                _uiState.update {
+                    it.copy(
+                        isDetectingGps = false,
+                        snackbarMessage = "📍 Exact GPS updated: ${gpsResult.cityName}"
+                    )
+                }
+                triggerGoogleSearchSync()
+                onComplete?.invoke(true)
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isDetectingGps = false,
+                        snackbarMessage = "Could not fetch GPS. Please ensure Location is enabled in phone settings."
+                    )
+                }
+                onComplete?.invoke(false)
+            }
         }
     }
 

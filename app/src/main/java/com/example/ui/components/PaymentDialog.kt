@@ -313,7 +313,7 @@ fun PaymentDialog(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // UPI App selector
+                // UPI App selector with direct package launching
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -330,7 +330,17 @@ fun PaymentDialog(
                                     color = if (isSelected) appColor else Color.Transparent,
                                     shape = RoundedCornerShape(8.dp)
                                 )
-                                .clickable { selectedApp = appName }
+                                .clickable {
+                                    selectedApp = appName
+                                    val pkg = when (appName) {
+                                        "Google Pay" -> "com.google.android.apps.nbu.paisa.user"
+                                        "PhonePe" -> "com.phonepe.app"
+                                        "Paytm" -> "net.one97.paytm"
+                                        "BHIM UPI" -> "in.org.npci.upiapp"
+                                        else -> null
+                                    }
+                                    launchUpiIntent(pkg)
+                                }
                         ) {
                             Column(
                                 modifier = Modifier.padding(vertical = 6.dp),
@@ -361,6 +371,26 @@ fun PaymentDialog(
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
+                    },
+                    trailingIcon = {
+                        TextButton(
+                            onClick = {
+                                try {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val item = clipboard.primaryClip?.getItemAt(0)?.text?.toString()?.trim()
+                                    if (!item.isNullOrBlank()) {
+                                        upiRefInput = item
+                                        Toast.makeText(context, "Pasted reference from clipboard", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "Clipboard empty", Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (e: Exception) {
+                                    // Handled
+                                }
+                            }
+                        ) {
+                            Text("Paste", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
                     },
                     modifier = Modifier.fillMaxWidth().testTag("upi_id_input")
                 )

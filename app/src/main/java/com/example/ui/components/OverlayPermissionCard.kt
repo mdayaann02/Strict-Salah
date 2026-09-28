@@ -140,7 +140,7 @@ fun OverlayPermissionCard(
                         )
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            text = "To suddenly take over the screen and enforce lockdown when prayer time begins, Strict Namaz requires 'Appear on top' permission.",
+                            text = "To strictly enforce lockdown when prayer time begins, Strict Namaz requires 'Appear on top' permission.",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 16.sp
@@ -168,36 +168,6 @@ fun OverlayPermissionCard(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Enable 'Display Over Other Apps'", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
-            }
-        }
-    } else {
-        // Overlay permission is granted
-        Surface(
-            modifier = modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .testTag("overlay_permission_granted_card"),
-            color = Color(0xFF1B5E20).copy(alpha = 0.10f)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Overlay active",
-                    tint = Color(0xFF2E7D32),
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Display Over Other Apps Enabled (Sudden Lockdown Armed)",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF1B5E20)
-                )
             }
         }
     }

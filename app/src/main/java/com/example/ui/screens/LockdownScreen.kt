@@ -241,27 +241,25 @@ fun LockdownScreen(
                 showInAppCamera = false
             }
         )
-        return
-    }
+    } else {
+        // Pulse animation for lockdown banner
+        val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+        val alphaAnim by infiniteTransition.animateFloat(
+            initialValue = 0.7f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "alpha"
+        )
 
-    // Pulse animation for lockdown banner
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val alphaAnim by infiniteTransition.animateFloat(
-        initialValue = 0.7f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "alpha"
-    )
-
-    Surface(
-        modifier = modifier
-            .fillMaxSize()
-            .testTag("lockdown_screen"),
-        color = Color(0xFF07120D)
-    ) {
+        Surface(
+            modifier = modifier
+                .fillMaxSize()
+                .testTag("lockdown_screen"),
+            color = Color(0xFF07120D)
+        ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -746,6 +744,7 @@ fun LockdownScreen(
                 }
             }
         }
+    }
     }
 
     // Confirmation dialog for using 1 of 10 free chances
