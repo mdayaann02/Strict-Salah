@@ -43,5 +43,9 @@ data class UserProfileEntity(
     val customIshaTime: String = "",
     val useCustomTimings: Boolean = false,
     val themeMode: String = "SYSTEM", // "SYSTEM", "LIGHT", "DARK", "AMOLED"
-    val colorPalette: String = "EMERALD" // "EMERALD", "GOLD", "INDIGO", "CRIMSON", "DYNAMIC"
+    val colorPalette: String = "EMERALD", // "EMERALD", "GOLD", "INDIGO", "CRIMSON", "DYNAMIC", "ROSE_GOLD"
+    val userGender: String = "NEUTRAL", // "NEUTRAL", "BROTHER", "SISTER"
+    val appLogoTheme: String = "DEFAULT", // "DEFAULT", "BROTHER", "SISTER"
+    val firebaseUid: String = "",
+    val authProvider: String = "LOCAL" // "GOOGLE", "FIREBASE", "LOCAL"
 )

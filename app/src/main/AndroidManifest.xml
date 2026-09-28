@@ -34,6 +34,14 @@
         <intent>
             <action android:name="android.intent.action.GET_CONTENT" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="upi" />
+        </intent>
+        <package android:name="com.google.android.apps.nbu.paisa.user" />
+        <package android:name="com.phonepe.app" />
+        <package android:name="net.one97.paytm" />
+        <package android:name="in.org.npci.upiapp" />
     </queries>
 
     <application
@@ -49,7 +57,6 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:launchMode="singleTask"
             android:showOnLockScreen="true"
             android:turnScreenOn="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
@@ -95,6 +102,34 @@
                 <action android:name="android.app.action.DEVICE_ADMIN_DISABLED" />
             </intent-filter>
         </receiver>
+        <!-- Gender Edition Dynamic App Icon Aliases -->
+        <activity-alias
+            android:name=".MainActivityBrother"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_brother"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_brother_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivitySister"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_sister"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_sister_round"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
     </application>
 
 </manifest>

@@ -103,6 +103,8 @@ fun SettingsScreen(
     onSaveSettings: (notifEnabled: Boolean, reminderMin: Int, lockMin: Int, appLock: Boolean) -> Unit,
     onSetThemeMode: (String) -> Unit = {},
     onSetColorPalette: (String) -> Unit = {},
+    onUpdateGenderAndLogo: (gender: String, logoTheme: String) -> Unit = { _, _ -> },
+    onOpenVoluntaryPayment: () -> Unit = {},
     onTriggerSearchSync: () -> Unit,
     onOpenJanamazRegistration: () -> Unit = {},
     onOpenDeRegistrationPledge: () -> Unit = {},
@@ -350,6 +352,78 @@ fun SettingsScreen(
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "APP LOGO & GENDER EDITION",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    com.example.util.AppLogoTheme.entries.forEach { logoTheme ->
+                        val isSelected = profile.appLogoTheme.equals(logoTheme.key, ignoreCase = true)
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    val gender = when (logoTheme) {
+                                        com.example.util.AppLogoTheme.BROTHER -> "BROTHER"
+                                        com.example.util.AppLogoTheme.SISTER -> "SISTER"
+                                        else -> "NEUTRAL"
+                                    }
+                                    onUpdateGenderAndLogo(gender, logoTheme.key)
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                androidx.compose.foundation.Image(
+                                    painter = androidx.compose.ui.res.painterResource(id = logoTheme.drawableRes),
+                                    contentDescription = logoTheme.title,
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = logoTheme.title,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+                                    Text(
+                                        text = logoTheme.subtitle,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                androidx.compose.material3.RadioButton(
+                                    selected = isSelected,
+                                    onClick = {
+                                        val gender = when (logoTheme) {
+                                            com.example.util.AppLogoTheme.BROTHER -> "BROTHER"
+                                            com.example.util.AppLogoTheme.SISTER -> "SISTER"
+                                            else -> "NEUTRAL"
+                                        }
+                                        onUpdateGenderAndLogo(gender, logoTheme.key)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -711,6 +785,19 @@ fun SettingsScreen(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = onOpenVoluntaryPayment,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth().testTag("open_payment_app_redirect_button")
+                ) {
+                    Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Redirect to Payment App (GPay / PhonePe / Paytm)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
 
@@ -816,28 +903,28 @@ fun SettingsScreen(
         }
 
         // ==========================================
-        // 9. DROPDOWN: STRICT SALAH V4.0 SYSTEM INFO
+        // 9. DROPDOWN: STRICT SALAH V2.0 SYSTEM INFO
         // ==========================================
         SettingsDropdownCard(
-            title = "Strict Salah v4.0 System Information",
-            subtitle = "Version 4.0 • Gemini 3.1 Pro Preview Grounding",
+            title = "Strict Salah v2.0 System Information",
+            subtitle = "Version 2.0 • Firebase Auth & Gender Customization",
             icon = Icons.Default.Info,
             iconTint = MaterialTheme.colorScheme.primary,
-            statusBadge = "v4.0 Build",
+            statusBadge = "v2.0 Build",
             isExpanded = expandedSections["SYSTEM"] ?: false,
             onToggle = { toggleSection("SYSTEM") },
             testTag = "dropdown_system"
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "Strict Salah v4.0 is engineered with Liquid Glass dynamic fluid UI, robust UPI payment gateway integration, and military-grade discipline locks.",
+                    text = "Strict Salah v2.0 is engineered with Liquid Glass dynamic fluid UI, Firebase Auth, Google Sign-In, multi-gender dynamic app logo customization, and robust UPI payment redirection.",
                     fontSize = 11.sp,
                     lineHeight = 15.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "• Version: 4.0 (Production Release)\n• Official UPI ID: 8217317725@superyes\n• AI Model: Gemini 3.1 Pro Preview\n• Storage: Encrypted Offline Room Database",
+                    text = "• Version: 2.0 (Official Personalized Release)\n• Authentication: Firebase Auth & Google Sign-In\n• Official Payee UPI: 8217317725@superyes\n• Storage: Encrypted Offline Room Database & Google Drive Sync",
                     fontSize = 11.sp,
                     lineHeight = 16.sp,
                     color = MaterialTheme.colorScheme.onSurface

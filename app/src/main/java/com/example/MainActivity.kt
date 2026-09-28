@@ -377,6 +377,8 @@ fun MainAppScreen(viewModel: MainViewModel) {
                         },
                         onSetThemeMode = { mode -> viewModel.setThemeMode(mode) },
                         onSetColorPalette = { palette -> viewModel.setColorPalette(palette) },
+                        onUpdateGenderAndLogo = { gender, logo -> viewModel.updateGenderAndLogo(gender, logo) },
+                        onOpenVoluntaryPayment = { viewModel.openVoluntaryPaymentDialog() },
                         onTriggerSearchSync = { viewModel.triggerGoogleSearchSync() },
                         onOpenJanamazRegistration = { viewModel.openJanamazRegistration() },
                         onOpenDeRegistrationPledge = { viewModel.openDeRegistrationDialog() },
@@ -408,12 +410,24 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 if (showProfileDialog) {
                     ProfileDialog(
                         profile = uiState.profile,
-                        onSignInGoogle = { email, name, photoUrl -> viewModel.signInWithGoogle(email, name, photoUrl) },
+                        onSignInGoogle = { email, name, photoUrl, uid, provider -> viewModel.signInWithGoogle(email, name, photoUrl) },
                         onSignOutGoogle = { viewModel.signOutGoogle() },
                         onBackupToDrive = { viewModel.syncDataToGoogleDrive() },
+                        onUpdateGenderAndLogo = { gender, logo -> viewModel.updateGenderAndLogo(gender, logo) },
+                        onOpenVoluntaryPayment = { viewModel.openVoluntaryPaymentDialog() },
                         isSyncingDrive = uiState.isSyncingDrive,
                         lastDriveBackupTime = uiState.lastDriveBackupTime,
                         onDismiss = { showProfileDialog = false }
+                    )
+                }
+
+                if (uiState.showVoluntaryPaymentDialog) {
+                    com.example.ui.components.VoluntaryPaymentDialog(
+                        isProcessing = uiState.isAnalyzing,
+                        onDismiss = { viewModel.dismissVoluntaryPaymentDialog() },
+                        onConfirmPayment = { amount, note, paymentApp, upiRef ->
+                            viewModel.processVoluntaryPayment(amount, note, paymentApp, upiRef)
+                        }
                     )
                 }
 

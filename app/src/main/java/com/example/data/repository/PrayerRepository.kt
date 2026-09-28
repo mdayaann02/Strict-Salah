@@ -558,14 +558,32 @@ class PrayerRepository(
         )
     }
 
-    suspend fun signInWithGoogle(email: String, displayName: String, photoUrl: String = "") {
+    suspend fun updateGenderAndLogo(gender: String, logoTheme: String) {
+        val profile = ensureProfile()
+        val palette = when (logoTheme) {
+            "BROTHER" -> "EMERALD"
+            "SISTER" -> "ROSE_GOLD"
+            else -> profile.colorPalette
+        }
+        prayerDao.updateProfile(
+            profile.copy(
+                userGender = gender,
+                appLogoTheme = logoTheme,
+                colorPalette = palette
+            )
+        )
+    }
+
+    suspend fun signInWithGoogle(email: String, displayName: String, photoUrl: String = "", uid: String = "", provider: String = "GOOGLE") {
         val profile = ensureProfile()
         prayerDao.updateProfile(
             profile.copy(
                 isGoogleSignedIn = true,
                 googleEmail = email,
                 googleDisplayName = displayName,
-                googlePhotoUrl = photoUrl
+                googlePhotoUrl = photoUrl,
+                firebaseUid = uid,
+                authProvider = provider
             )
         )
     }
@@ -577,7 +595,9 @@ class PrayerRepository(
                 isGoogleSignedIn = false,
                 googleEmail = "",
                 googleDisplayName = "",
-                googlePhotoUrl = ""
+                googlePhotoUrl = "",
+                firebaseUid = "",
+                authProvider = "LOCAL"
             )
         )
     }

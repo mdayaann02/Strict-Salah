@@ -65,7 +65,8 @@ data class MainUiState(
     val showJanamazRegistrationDialog: Boolean = false,
     val isRegisteringJanamaz: Boolean = false,
     val registeredJanamazBitmaps: List<Bitmap> = emptyList(),
-    val isDetectingGps: Boolean = false
+    val isDetectingGps: Boolean = false,
+    val showVoluntaryPaymentDialog: Boolean = false
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -608,6 +609,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.relockUninstallation()
             postSnackbar("🔒 Uninstallation protection re-locked.")
+        }
+    }
+
+    fun openVoluntaryPaymentDialog() {
+        _uiState.update { it.copy(showVoluntaryPaymentDialog = true) }
+    }
+
+    fun dismissVoluntaryPaymentDialog() {
+        _uiState.update { it.copy(showVoluntaryPaymentDialog = false) }
+    }
+
+    fun processVoluntaryPayment(amount: Double, note: String, paymentApp: String, upiRef: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAnalyzing = true, analysisStatusText = "Logging payment via $paymentApp...") }
+            delay(800)
+            val tx = PenaltyTransactionEntity(
+                prayerName = note.ifBlank { "Voluntary Sadaqah / Pledge" },
+                date = repository.getTodayDateString(),
+                transactionType = "VOLUNTARY_PLEDGE",
+                amount = amount.toInt(),
+                paymentApp = paymentApp,
+                upiRefId = upiRef,
+                receiptNumber = com.example.data.payment.UpiPaymentGateway.generateReceiptNumber("PAY"),
+                remarks = note.ifBlank { "Voluntary contribution via $paymentApp" }
+            )
+            com.example.data.local.AppDatabase.getInstance(getApplication()).prayerDao().insertTransaction(tx)
+            _uiState.update { it.copy(isAnalyzing = false, showVoluntaryPaymentDialog = false) }
+            postSnackbar("✅ Payment of ₹${amount.toInt()} confirmed (${tx.receiptNumber}) via $paymentApp")
+        }
+    }
+
+    fun updateGenderAndLogo(gender: String, logoTheme: String) {
+        viewModelScope.launch {
+            repository.updateGenderAndLogo(gender, logoTheme)
+            val themeEnum = com.example.util.AppLogoTheme.fromKey(logoTheme)
+            com.example.util.AppIconManager.applyLogoTheme(getApplication(), themeEnum)
+            postSnackbar("App icon & theme updated to ${themeEnum.genderLabel}")
         }
     }
 
