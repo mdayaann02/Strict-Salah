@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.DailySchedule
 import com.example.data.model.PrayerTimeItem
 import com.example.data.model.PrayerType
+import com.example.ui.theme.LiquidAqua
 import java.util.Locale
 
 @Composable
@@ -80,10 +81,9 @@ fun CurrentAndUpcomingPrayerCard(
         String.format(Locale.US, "%02dm %02ds", minutes, secs)
     }
 
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+    LiquidGlassSurface(
+        shape = RoundedCornerShape(26.dp),
+        glowColor = if (isLockdownActive) Color(0xFFEF4444) else LiquidAqua,
         modifier = modifier
             .fillMaxWidth()
             .testTag("current_and_upcoming_prayer_card")
@@ -91,14 +91,6 @@ fun CurrentAndUpcomingPrayerCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                            MaterialTheme.colorScheme.surface
-                        )
-                    )
-                )
                 .padding(18.dp)
         ) {
             Column {
@@ -112,7 +104,7 @@ fun CurrentAndUpcomingPrayerCard(
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = Color(0xFFFF6D00).copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF6D00).copy(alpha = 0.3f))
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF6D00).copy(alpha = 0.35f))
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -121,7 +113,7 @@ fun CurrentAndUpcomingPrayerCard(
                             Icon(
                                 imageVector = Icons.Default.LocalFireDepartment,
                                 contentDescription = null,
-                                tint = Color(0xFFFF6D00),
+                                tint = Color(0xFFFF9100),
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
@@ -129,7 +121,7 @@ fun CurrentAndUpcomingPrayerCard(
                                 text = "$currentStreak Day Streak",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
-                                color = Color(0xFFFF6D00)
+                                color = Color(0xFFFF9100)
                             )
                         }
                     }
@@ -137,10 +129,10 @@ fun CurrentAndUpcomingPrayerCard(
                     // Free Skips Pill
                     Surface(
                         shape = RoundedCornerShape(20.dp),
-                        color = if (freeSkipsRemaining > 0) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color(0xFFD32F2F).copy(alpha = 0.15f),
+                        color = if (freeSkipsRemaining > 0) Color(0xFF00E5FF).copy(alpha = 0.15f) else Color(0xFFD32F2F).copy(alpha = 0.15f),
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
-                            if (freeSkipsRemaining > 0) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color(0xFFD32F2F).copy(alpha = 0.3f)
+                            if (freeSkipsRemaining > 0) Color(0xFF00E5FF).copy(alpha = 0.35f) else Color(0xFFD32F2F).copy(alpha = 0.35f)
                         )
                     ) {
                         Row(
@@ -150,15 +142,15 @@ fun CurrentAndUpcomingPrayerCard(
                             Icon(
                                 imageVector = Icons.Default.Shield,
                                 contentDescription = null,
-                                tint = if (freeSkipsRemaining > 0) MaterialTheme.colorScheme.primary else Color(0xFFD32F2F),
+                                tint = if (freeSkipsRemaining > 0) Color(0xFF00E5FF) else Color(0xFFFF5252),
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "$freeSkipsRemaining Free Skip${if (freeSkipsRemaining == 1) "" else "s"}",
+                                text = "$freeSkipsRemaining / 3 Free Skips",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
-                                color = if (freeSkipsRemaining > 0) MaterialTheme.colorScheme.primary else Color(0xFFD32F2F)
+                                color = if (freeSkipsRemaining > 0) Color(0xFF00E5FF) else Color(0xFFFF5252)
                             )
                         }
                     }
@@ -166,60 +158,70 @@ fun CurrentAndUpcomingPrayerCard(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // CURRENT & UPCOMING SPLIT SECTION
+                // CURRENT & UPCOMING SPLIT SECTION (Apple Music Frosted Containers)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // CURRENT NAMAZ BOX
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                        shape = RoundedCornerShape(18.dp),
+                        color = Color.White.copy(alpha = 0.06f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
                         modifier = Modifier.weight(1f)
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(14.dp),
                             horizontalAlignment = Alignment.Start
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF2E7D32))
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "CURRENT",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF10B981))
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "CURRENT",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 1.sp,
+                                        color = Color.White.copy(alpha = 0.6f)
+                                    )
+                                }
+                                AppleMusicWaveVisualizer(color = Color(0xFF10B981))
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = currentActiveItem?.prayerType?.displayName ?: "Fajr",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = Color.White
                             )
                             Text(
                                 text = currentActiveItem?.timeFormatted ?: "--:--",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = Color(0xFF00E5FF)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             val isCurrentOffered = currentActiveItem?.isOfferedToday == true
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = if (isCurrentOffered) Color(0xFF2E7D32).copy(alpha = 0.15f) else Color(0xFFF57F17).copy(alpha = 0.15f)
+                                color = if (isCurrentOffered) Color(0xFF10B981).copy(alpha = 0.18f) else Color(0xFFF59E0B).copy(alpha = 0.18f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isCurrentOffered) Color(0xFF10B981).copy(alpha = 0.4f) else Color(0xFFF59E0B).copy(alpha = 0.4f))
                             ) {
                                 Text(
                                     text = if (isCurrentOffered) "✓ Offered" else "• Pending",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isCurrentOffered) Color(0xFF2E7D32) else Color(0xFFF57F17),
+                                    color = if (isCurrentOffered) Color(0xFF34D399) else Color(0xFFFBBF24),
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
@@ -228,20 +230,20 @@ fun CurrentAndUpcomingPrayerCard(
 
                     // UPCOMING NAMAZ BOX
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                        shape = RoundedCornerShape(18.dp),
+                        color = Color(0xFF0284C7).copy(alpha = 0.10f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF0284C7).copy(alpha = 0.30f)),
                         modifier = Modifier.weight(1f)
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(14.dp),
                             horizontalAlignment = Alignment.Start
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.HourglassEmpty,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = Color(0xFF38BDF8),
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -249,7 +251,8 @@ fun CurrentAndUpcomingPrayerCard(
                                     text = "UPCOMING",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Black,
-                                    color = MaterialTheme.colorScheme.primary
+                                    letterSpacing = 1.sp,
+                                    color = Color(0xFF38BDF8)
                                 )
                             }
                             Spacer(modifier = Modifier.height(6.dp))
@@ -257,24 +260,25 @@ fun CurrentAndUpcomingPrayerCard(
                                 text = nextPrayer.displayName,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = Color.White
                             )
                             Text(
                                 text = nextPrayerFormattedTime,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = Color(0xFF38BDF8)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                color = Color(0xFF0284C7).copy(alpha = 0.2f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.35f))
                             ) {
                                 Text(
                                     text = "in $countdownStr",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = Color(0xFF7DD3FC),
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
@@ -287,12 +291,13 @@ fun CurrentAndUpcomingPrayerCard(
                     Column {
                         Spacer(modifier = Modifier.height(14.dp))
                         Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = Color(0xFFD32F2F),
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFFDC2626),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEF4444)),
                             modifier = Modifier.fillMaxWidth().testTag("active_lockdown_hero_banner")
                         ) {
                             Row(
-                                modifier = Modifier.padding(12.dp),
+                                modifier = Modifier.padding(14.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
@@ -303,13 +308,14 @@ fun CurrentAndUpcomingPrayerCard(
                                         tint = Color.White,
                                         modifier = Modifier.size(22.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(10.dp))
                                     Column {
                                         Text(
                                             text = "LOCKDOWN ACTIVE",
                                             color = Color.White,
                                             fontWeight = FontWeight.Black,
-                                            fontSize = 12.sp
+                                            fontSize = 12.sp,
+                                            letterSpacing = 1.sp
                                         )
                                         Text(
                                             text = "Scan Janamaz Mat to unlock apps",
@@ -323,9 +329,9 @@ fun CurrentAndUpcomingPrayerCard(
                                     onClick = { onOpenLockdown(currentLockdownPrayer ?: nextPrayer) },
                                     colors = ButtonDefaults.elevatedButtonColors(
                                         containerColor = Color.White,
-                                        contentColor = Color(0xFFD32F2F)
+                                        contentColor = Color(0xFFDC2626)
                                     ),
-                                    shape = RoundedCornerShape(8.dp)
+                                    shape = RoundedCornerShape(10.dp)
                                 ) {
                                     Text("Verify", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 }

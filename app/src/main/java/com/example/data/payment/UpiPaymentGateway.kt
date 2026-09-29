@@ -51,30 +51,53 @@ object UpiPaymentGateway {
         }
     }
 
+    fun isAppInstalled(context: Context, packageName: String): Boolean {
+        return try {
+            context.packageManager.getPackageInfo(packageName, 0)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Builds a clean, universal NPCI UPI URI string accepted by all Indian UPI apps
+     * without invalid merchant-only parameters for personal VPAs.
+     */
     fun buildUpiUri(
         amount: Double,
-        note: String,
-        transactionRef: String = "SS${System.currentTimeMillis() % 10000000}"
+        note: String
     ): Uri {
         val amountStr = String.format(Locale.US, "%.2f", amount)
         val encodedNote = Uri.encode(note)
         val encodedName = Uri.encode(PAYEE_NAME)
-        val uriString = "upi://pay?pa=$OFFICIAL_UPI_ID&pn=$encodedName&mc=&tid=${System.currentTimeMillis()}&tr=$transactionRef&tn=$encodedNote&am=$amountStr&cu=INR"
+        val uriString = "upi://pay?pa=$OFFICIAL_UPI_ID&pn=$encodedName&am=$amountStr&cu=INR&tn=$encodedNote"
         return Uri.parse(uriString)
     }
 
+    /**
+     * Creates an Intent to launch UPI apps via ActivityResult.
+     * Note: Do NOT add FLAG_ACTIVITY_NEW_TASK here as it causes ActivityResultLauncher to immediately cancel.
+     */
     fun createPaymentIntent(
         amount: Double,
         note: String,
-        targetPackage: String? = null,
-        transactionRef: String = "SS${System.currentTimeMillis() % 10000000}"
+        targetPackage: String? = null
     ): Intent {
-        val uri = buildUpiUri(amount, note, transactionRef)
+        val uri = buildUpiUri(amount, note)
         val intent = Intent(Intent.ACTION_VIEW, uri)
         if (!targetPackage.isNullOrBlank()) {
             intent.setPackage(targetPackage)
         }
         return intent
+    }
+
+    /**
+     * Generates a high-resolution QR Code URL for the UPI payment string
+     */
+    fun getUpiQrCodeUrl(amount: Double, note: String): String {
+        val uri = buildUpiUri(amount, note)
+        return "https://api.qrserver.com/v1/create-qr-code/?size=350x350&margin=10&data=" + Uri.encode(uri.toString())
     }
 
     /**

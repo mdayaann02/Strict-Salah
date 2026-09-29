@@ -171,15 +171,12 @@ fun GoogleMapsCard(
         }
     }
 
-    Card(
+    LiquidGlassCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("google_maps_card"),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        shape = RoundedCornerShape(22.dp),
+        glowColor = Color(0xFFEA4335)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Header

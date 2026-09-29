@@ -62,13 +62,12 @@ fun LocationPickerBar(
 ) {
     var showEditDialog by remember { mutableStateOf(false) }
 
-    Surface(
+    LiquidGlassCard(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
             .testTag("location_picker_bar"),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
-        tonalElevation = 2.dp
+        shape = RoundedCornerShape(18.dp),
+        glowColor = MaterialTheme.colorScheme.primary
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(

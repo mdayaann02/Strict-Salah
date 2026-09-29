@@ -114,25 +114,16 @@ fun StatisticsScreen(
 
         // Hero Today's Progress Bar Card
         item {
-            Card(
+            com.example.ui.components.LiquidGlassCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("today_statistics_hero_card"),
-                shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                shape = RoundedCornerShape(22.dp),
+                glowColor = Color(0xFF10B981)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xFF1B5E20).copy(alpha = 0.9f),
-                                    Color(0xFF0D3311)
-                                )
-                            )
-                        )
                         .padding(20.dp)
                 ) {
                     Column {
@@ -259,10 +250,10 @@ fun StatisticsScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Streak Card
-                Card(
+                com.example.ui.components.LiquidGlassCard(
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    shape = RoundedCornerShape(18.dp),
+                    glowColor = Color(0xFFE65100)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -295,10 +286,10 @@ fun StatisticsScreen(
                 }
 
                 // Total Offered Card
-                Card(
+                com.example.ui.components.LiquidGlassCard(
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    shape = RoundedCornerShape(18.dp),
+                    glowColor = Color(0xFF2E7D32)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -339,10 +330,10 @@ fun StatisticsScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Free Skips Remaining
-                Card(
+                com.example.ui.components.LiquidGlassCard(
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    shape = RoundedCornerShape(18.dp),
+                    glowColor = Color(0xFF1976D2)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -375,10 +366,10 @@ fun StatisticsScreen(
                 }
 
                 // Total Discipline Fines
-                Card(
+                com.example.ui.components.LiquidGlassCard(
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    shape = RoundedCornerShape(18.dp),
+                    glowColor = Color(0xFFD32F2F)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {

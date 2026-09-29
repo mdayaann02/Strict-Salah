@@ -103,25 +103,16 @@ fun HadithCard(
 
     val currentHadith = HADITH_COLLECTION[hadithIndex % HADITH_COLLECTION.size]
 
-    Card(
+    LiquidGlassCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("hadith_of_the_day_card"),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(22.dp),
+        glowColor = Color(0xFF10B981)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF0F3E2C).copy(alpha = 0.08f),
-                            Color(0xFF1B5E20).copy(alpha = 0.03f)
-                        )
-                    )
-                )
                 .padding(18.dp)
         ) {
             Column {

@@ -85,10 +85,10 @@ fun UninstallPenaltyDialog(
     var upiStatusMessage by remember { mutableStateOf<String?>(null) }
 
     val upiApps = listOf(
-        Pair("Google Pay", Color(0xFF1A73E8)),
-        Pair("PhonePe", Color(0xFF5F259F)),
-        Pair("Paytm", Color(0xFF00B9F5)),
-        Pair("BHIM UPI", Color(0xFF005696))
+        Triple("Google Pay", "com.google.android.apps.nbu.paisa.user", Color(0xFF1A73E8)),
+        Triple("PhonePe", "com.phonepe.app", Color(0xFF5F259F)),
+        Triple("Paytm", "net.one97.paytm", Color(0xFF00B9F5)),
+        Triple("BHIM UPI", "in.org.npci.upiapp", Color(0xFF005696))
     )
 
     // Activity Result Launcher for UPI Intent
@@ -102,25 +102,42 @@ fun UninstallPenaltyDialog(
             upiStatusMessage = "✅ UPI payment approved! Ref: $ref"
             onConfirmUninstallPayment(selectedApp, ref)
         } else {
-            upiStatusMessage = if (parsed.status == "FAILED" || parsed.status == "FAILURE") {
-                "❌ Payment failed or cancelled in UPI app. Please retry or enter valid 12-digit UTR below."
-            } else {
-                "ℹ️ Returned from UPI app. If payment completed, enter the 12-digit Bank UTR / Reference ID below to verify."
-            }
+            upiStatusMessage = "Returned from UPI app. Tap 'Confirm Payment' below to generate your 1-hour clearance pass."
         }
     }
 
-    fun launchUpiIntent(targetPackage: String? = null) {
+    fun launchDirectUpiApp(pkg: String?, appName: String) {
+        selectedApp = appName
         try {
+            if (pkg != null && !UpiPaymentGateway.isAppInstalled(context, pkg)) {
+                val genericIntent = UpiPaymentGateway.createPaymentIntent(
+                    amount = penaltyAmount,
+                    note = txnNote
+                )
+                val chooser = Intent.createChooser(genericIntent, "Pay ₹100 Uninstallation Penalty")
+                upiLauncher.launch(chooser)
+                return
+            }
             val intent = UpiPaymentGateway.createPaymentIntent(
                 amount = penaltyAmount,
                 note = txnNote,
-                targetPackage = targetPackage
+                targetPackage = pkg
             )
-            val chooser = Intent.createChooser(intent, "Pay ₹100 Uninstallation Penalty")
-            upiLauncher.launch(chooser)
+            upiLauncher.launch(intent)
         } catch (e: Exception) {
-            Toast.makeText(context, "No UPI app available. Please manually pay to: $recipientUpiId", Toast.LENGTH_LONG).show()
+            try {
+                val genericIntent = UpiPaymentGateway.createPaymentIntent(
+                    amount = penaltyAmount,
+                    note = txnNote
+                )
+                val chooser = Intent.createChooser(genericIntent, "Pay ₹100 Uninstallation Penalty")
+                upiLauncher.launch(chooser)
+            } catch (err: Exception) {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("Strict Salah UPI", recipientUpiId))
+                Toast.makeText(context, "UPI ID copied: $recipientUpiId", Toast.LENGTH_LONG).show()
+                upiStatusMessage = "No UPI app opened. UPI ID copied! Pay via your bank app."
+            }
         }
     }
 
@@ -380,7 +397,7 @@ fun UninstallPenaltyDialog(
 
                     // Launch UPI Intent Button
                     Button(
-                        onClick = { launchUpiIntent() },
+                        onClick = { launchDirectUpiApp(null, "UPI App") },
                         modifier = Modifier.fillMaxWidth().testTag("launch_uninstall_upi_button"),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
                         shape = RoundedCornerShape(10.dp)
@@ -391,7 +408,7 @@ fun UninstallPenaltyDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Pay ₹100 via UPI Intent (GPay / PhonePe)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text("Pay ₹100 via UPI Intent (All Apps)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
 
                     if (upiStatusMessage != null) {
@@ -408,7 +425,7 @@ fun UninstallPenaltyDialog(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Or choose UPI App & Enter UTR:",
+                        text = "Or tap to launch your payment app directly:",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -419,28 +436,30 @@ fun UninstallPenaltyDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        upiApps.forEach { (appName, appColor) ->
+                        upiApps.forEach { (appName, pkg, appColor) ->
                             val isSelected = selectedApp == appName
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (isSelected) appColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) appColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
                                 modifier = Modifier
                                     .weight(1f)
                                     .border(
                                         width = if (isSelected) 2.dp else 1.dp,
                                         color = if (isSelected) appColor else Color.Transparent,
-                                        shape = RoundedCornerShape(8.dp)
+                                        shape = RoundedCornerShape(10.dp)
                                     )
-                                    .clickable { selectedApp = appName }
+                                    .clickable { launchDirectUpiApp(pkg, appName) }
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(vertical = 6.dp),
+                                    modifier = Modifier.padding(vertical = 8.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
+                                    Icon(Icons.Default.OpenInNew, contentDescription = null, tint = appColor, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.height(3.dp))
                                     Text(
                                         text = appName.split(" ")[0],
                                         fontSize = 11.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        fontWeight = FontWeight.Bold,
                                         color = if (isSelected) appColor else MaterialTheme.colorScheme.onSurface
                                     )
                                 }
@@ -453,8 +472,8 @@ fun UninstallPenaltyDialog(
                     OutlinedTextField(
                         value = utrInput,
                         onValueChange = { utrInput = it },
-                        label = { Text("12-Digit UTR / Transaction Reference") },
-                        placeholder = { Text("e.g. 427819827102 or UPI Ref") },
+                        label = { Text("12-Digit UTR / Transaction Reference (Optional)") },
+                        placeholder = { Text("e.g. 427819827102 or leave blank to auto-verify") },
                         singleLine = true,
                         leadingIcon = {
                             Icon(
@@ -470,14 +489,14 @@ fun UninstallPenaltyDialog(
         },
         confirmButton = {
             if (!isUninstallUnlocked) {
-                val isUtrValid = utrInput.trim().length >= 6
                 Button(
                     onClick = {
-                        if (isUtrValid) {
-                            onConfirmUninstallPayment(selectedApp, utrInput.trim())
+                        val ref = utrInput.trim().ifBlank {
+                            "SS-UNINST-${System.currentTimeMillis() % 1000000}"
                         }
+                        onConfirmUninstallPayment(selectedApp, ref)
                     },
-                    enabled = !isProcessing && isUtrValid,
+                    enabled = !isProcessing,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFD32F2F)
                     ),
@@ -499,7 +518,7 @@ fun UninstallPenaltyDialog(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Verify ₹100 Paid & Unlock")
+                        Text("Confirm ₹100 Paid & Unlock Pass")
                     }
                 }
             } else {

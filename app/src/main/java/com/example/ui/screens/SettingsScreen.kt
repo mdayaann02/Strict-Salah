@@ -996,18 +996,12 @@ fun SettingsDropdownCard(
         label = "chevronRotation"
     )
 
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f)
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            width = if (isExpanded) 1.5.dp else 1.dp,
-            color = if (isExpanded) iconTint.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(testTag)
+    com.example.ui.components.LiquidGlassCard(
+        shape = RoundedCornerShape(20.dp),
+        glowColor = iconTint,
+        borderAlpha = if (isExpanded) 1.2f else 0.8f,
+        testTag = testTag,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column {
             // Clickable Header Row

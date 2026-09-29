@@ -53,10 +53,12 @@ import com.example.data.qibla.QiblaCalculator
 import com.example.ui.components.CurrentAndUpcomingPrayerCard
 import com.example.ui.components.GoogleMapsCard
 import com.example.ui.components.HadithCard
+import com.example.ui.components.LiquidGlassCard
 import com.example.ui.components.LocationPickerBar
 import com.example.ui.components.NamazStatisticsDialog
 import com.example.ui.components.OverlayPermissionCard
 import com.example.ui.components.PrayerTimeRow
+import com.example.ui.theme.LiquidAqua
 import com.example.ui.viewmodel.MainUiState
 import kotlin.math.roundToInt
 
@@ -124,13 +126,12 @@ fun HomeScreen(
 
         // 2. QUICK QIBLA FINDER BANNER
         item {
-            Card(
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onOpenQibla() }
-                    .testTag("home_qibla_quick_card")
+            LiquidGlassCard(
+                shape = RoundedCornerShape(20.dp),
+                glowColor = Color(0xFF10B981),
+                onClick = { onOpenQibla() },
+                testTag = "home_qibla_quick_card",
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
                     modifier = Modifier
@@ -144,13 +145,13 @@ fun HomeScreen(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                .background(Color(0xFF10B981).copy(alpha = 0.20f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Explore,
                                 contentDescription = "Qibla Direction",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = Color(0xFF10B981),
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -196,12 +197,11 @@ fun HomeScreen(
 
         // 3. TODAY'S PRAYER SCHEDULE (12-HOUR FORMAT)
         item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("prayer_schedule_card")
+            LiquidGlassCard(
+                shape = RoundedCornerShape(22.dp),
+                glowColor = LiquidAqua,
+                testTag = "prayer_schedule_card",
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(

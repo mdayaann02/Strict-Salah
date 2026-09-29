@@ -70,6 +70,8 @@ import com.example.ui.theme.GlassSurfaceDark
 import com.example.ui.theme.GlassSurfaceLight
 import com.example.ui.theme.LiquidAqua
 import com.example.ui.theme.LiquidEmerald
+import com.example.ui.theme.LiquidIndigo
+import com.example.ui.theme.LiquidRose
 import com.example.ui.theme.LiquidTeal
 import com.example.ui.theme.LiquidWaterBlue
 import com.example.ui.viewmodel.AppScreen
@@ -77,7 +79,8 @@ import kotlin.math.sin
 
 /**
  * Ambient Liquid Fluid Background that renders smooth animated liquid orbs
- * creating realistic depth and refraction behind translucent glass panels.
+ * creating realistic depth and refraction behind translucent glass panels
+ * inspired by Apple Music's vibrant fluid mesh gradients on iOS.
  */
 @Composable
 fun LiquidGlassBackground(
@@ -91,7 +94,7 @@ fun LiquidGlassBackground(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(18000, easing = LinearEasing),
+            animation = tween(22000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "FluidRotation1"
@@ -101,17 +104,17 @@ fun LiquidGlassBackground(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(24000, easing = LinearEasing),
+            animation = tween(28000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "FluidRotation2"
     )
 
     val wavePulse by infiniteTransition.animateFloat(
-        initialValue = 0.85f,
-        targetValue = 1.15f,
+        initialValue = 0.88f,
+        targetValue = 1.18f,
         animationSpec = infiniteRepeatable(
-            animation = tween(7000, easing = FastOutSlowInEasing),
+            animation = tween(7500, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "WavePulse"
@@ -122,10 +125,14 @@ fun LiquidGlassBackground(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(
+                    if (isAmoled) Color(0xFF000000)
+                    else if (isDark) Color(0xFF080D17)
+                    else Color(0xFFF1F5F9)
+                )
         )
 
-        // Animated Liquid Orbs
+        // Animated Liquid Mesh Orbs (Apple Music Liquid Glow)
         if (!isAmoled) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val width = size.width
@@ -134,47 +141,63 @@ fun LiquidGlassBackground(
                 val rad1 = Math.toRadians(floatAnim1.toDouble())
                 val rad2 = Math.toRadians(floatAnim2.toDouble())
 
-                val orb1X = width * 0.25f + (sin(rad1) * 70f).toFloat()
-                val orb1Y = height * 0.2f + (sin(rad1 * 0.7) * 90f).toFloat()
+                // 4 Smooth floating ambient liquid orbs
+                val orb1X = width * 0.22f + (sin(rad1) * 85f).toFloat()
+                val orb1Y = height * 0.22f + (sin(rad1 * 0.8) * 110f).toFloat()
 
-                val orb2X = width * 0.8f + (sin(rad2) * 80f).toFloat()
-                val orb2Y = height * 0.7f + (sin(rad2 * 0.8) * 110f).toFloat()
+                val orb2X = width * 0.78f + (sin(rad2) * 95f).toFloat()
+                val orb2Y = height * 0.68f + (sin(rad2 * 0.7) * 125f).toFloat()
 
-                val orb3X = width * 0.5f + (sin(rad1 * 1.2) * 90f).toFloat()
-                val orb3Y = height * 0.45f + (sin(rad2 * 0.5) * 60f).toFloat()
+                val orb3X = width * 0.52f + (sin(rad1 * 1.3) * 105f).toFloat()
+                val orb3Y = height * 0.42f + (sin(rad2 * 0.6) * 75f).toFloat()
 
-                val primaryColor = if (isDark) LiquidAqua.copy(alpha = 0.12f) else LiquidAqua.copy(alpha = 0.18f)
-                val secondaryColor = if (isDark) LiquidTeal.copy(alpha = 0.10f) else LiquidEmerald.copy(alpha = 0.16f)
-                val waterColor = if (isDark) LiquidWaterBlue.copy(alpha = 0.08f) else LiquidWaterBlue.copy(alpha = 0.14f)
+                val orb4X = width * 0.18f + (sin(rad2 * 1.1) * 70f).toFloat()
+                val orb4Y = height * 0.82f + (sin(rad1 * 0.9) * 95f).toFloat()
 
+                val aqua = if (isDark) LiquidAqua.copy(alpha = 0.16f) else LiquidAqua.copy(alpha = 0.22f)
+                val emerald = if (isDark) LiquidEmerald.copy(alpha = 0.14f) else LiquidEmerald.copy(alpha = 0.20f)
+                val indigo = if (isDark) LiquidIndigo.copy(alpha = 0.13f) else LiquidIndigo.copy(alpha = 0.18f)
+                val rose = if (isDark) LiquidRose.copy(alpha = 0.09f) else LiquidRose.copy(alpha = 0.13f)
+
+                // Draw luminous ambient radial orbs
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(primaryColor, Color.Transparent),
+                        colors = listOf(aqua, Color.Transparent),
                         center = Offset(orb1X, orb1Y),
-                        radius = width * 0.55f * wavePulse
+                        radius = width * 0.65f * wavePulse
                     ),
-                    radius = width * 0.55f * wavePulse,
+                    radius = width * 0.65f * wavePulse,
                     center = Offset(orb1X, orb1Y)
                 )
 
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(secondaryColor, Color.Transparent),
+                        colors = listOf(emerald, Color.Transparent),
                         center = Offset(orb2X, orb2Y),
-                        radius = width * 0.65f * wavePulse
+                        radius = width * 0.70f * wavePulse
                     ),
-                    radius = width * 0.65f * wavePulse,
+                    radius = width * 0.70f * wavePulse,
                     center = Offset(orb2X, orb2Y)
                 )
 
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(waterColor, Color.Transparent),
+                        colors = listOf(indigo, Color.Transparent),
                         center = Offset(orb3X, orb3Y),
-                        radius = width * 0.5f * wavePulse
+                        radius = width * 0.60f * wavePulse
                     ),
-                    radius = width * 0.5f * wavePulse,
+                    radius = width * 0.60f * wavePulse,
                     center = Offset(orb3X, orb3Y)
+                )
+
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(rose, Color.Transparent),
+                        center = Offset(orb4X, orb4Y),
+                        radius = width * 0.55f * wavePulse
+                    ),
+                    radius = width * 0.55f * wavePulse,
+                    center = Offset(orb4X, orb4Y)
                 )
             }
         }
@@ -185,69 +208,78 @@ fun LiquidGlassBackground(
 }
 
 /**
- * Reusable Liquid Glass Surface Container with translucent glass styling,
- * frosted border highlights, and optional liquid wave glow.
+ * Reusable Liquid Glass Surface Container with Apple Music frosted acrylic styling,
+ * 1.25dp specular border highlights, and ambient light refraction.
  */
 @Composable
 fun LiquidGlassSurface(
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(20.dp),
+    shape: Shape = RoundedCornerShape(24.dp),
     isAmoled: Boolean = false,
     glowColor: Color = LiquidAqua,
+    borderAlpha: Float = 1.0f,
     content: @Composable () -> Unit
 ) {
     val isDark = isSystemInDarkTheme() || isAmoled
 
-    val surfaceColor = when {
-        isAmoled -> GlassSurfaceAmoled
-        isDark -> GlassSurfaceDark
-        else -> GlassSurfaceLight
+    val surfaceBrush = if (isAmoled) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF070B12).copy(alpha = 0.94f),
+                Color(0xFF030508).copy(alpha = 0.88f)
+            )
+        )
+    } else if (isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.12f),
+                Color.White.copy(alpha = 0.05f),
+                Color(0xFF0A101D).copy(alpha = 0.65f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.88f),
+                Color.White.copy(alpha = 0.72f),
+                Color(0xFFF0FDF4).copy(alpha = 0.50f)
+            )
+        )
     }
 
-    val borderColor = when {
-        isAmoled -> GlassBorderAmoled
-        isDark -> GlassBorderDark
-        else -> GlassBorderLight
-    }
+    val borderBrush = Brush.verticalGradient(
+        colors = listOf(
+            if (isDark) Color.White.copy(alpha = 0.42f * borderAlpha) else Color.White.copy(alpha = 0.90f * borderAlpha),
+            if (isDark) Color.White.copy(alpha = 0.10f * borderAlpha) else Color.White.copy(alpha = 0.35f * borderAlpha)
+        )
+    )
 
     Box(
         modifier = modifier
             .shadow(
-                elevation = if (isAmoled) 0.dp else 10.dp,
+                elevation = if (isAmoled) 0.dp else 14.dp,
                 shape = shape,
-                spotColor = glowColor.copy(alpha = 0.25f),
-                ambientColor = Color.Black.copy(alpha = 0.15f)
+                spotColor = glowColor.copy(alpha = if (isDark) 0.22f else 0.14f),
+                ambientColor = Color.Black.copy(alpha = if (isDark) 0.30f else 0.08f)
             )
             .clip(shape)
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        surfaceColor.copy(alpha = if (isDark) 0.85f else 0.90f),
-                        surfaceColor.copy(alpha = if (isDark) 0.65f else 0.75f)
-                    )
-                )
-            )
+            .background(surfaceBrush)
             .border(
-                width = 1.dp,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        GlassHighlight.copy(alpha = if (isDark) 0.35f else 0.65f),
-                        borderColor
-                    )
-                ),
+                width = 1.25.dp,
+                brush = borderBrush,
                 shape = shape
             )
     ) {
-        // Specular highlight gleam at the top edge of the glass
+        // Specular highlight gleam at the top edge of the frosted glass
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(1.dp)
+                .height(1.2.dp)
                 .background(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            GlassHighlight.copy(alpha = 0.6f),
+                            Color.White.copy(alpha = if (isDark) 0.65f else 0.95f),
                             Color.Transparent
                         )
                     )
@@ -255,6 +287,91 @@ fun LiquidGlassSurface(
         )
 
         content()
+    }
+}
+
+/**
+ * Clickable / non-clickable Liquid Glass Card for list items and section containers.
+ */
+@Composable
+fun LiquidGlassCard(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(22.dp),
+    isAmoled: Boolean = false,
+    glowColor: Color = LiquidAqua,
+    borderAlpha: Float = 1.0f,
+    onClick: (() -> Unit)? = null,
+    testTag: String = "",
+    content: @Composable () -> Unit
+) {
+    val clickableModifier = if (onClick != null) {
+        modifier.clickable { onClick() }
+    } else modifier
+
+    val tagModifier = if (testTag.isNotBlank()) {
+        clickableModifier.testTag(testTag)
+    } else clickableModifier
+
+    LiquidGlassSurface(
+        shape = shape,
+        isAmoled = isAmoled,
+        glowColor = glowColor,
+        borderAlpha = borderAlpha,
+        modifier = tagModifier
+    ) {
+        content()
+    }
+}
+
+/**
+ * Animated Apple Music Style 4-Bar Equalizer / Waveform visualizer.
+ */
+@Composable
+fun AppleMusicWaveVisualizer(
+    color: Color = LiquidAqua,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "AppleMusicWave")
+
+    val h1 by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.95f,
+        animationSpec = infiniteRepeatable(tween(480, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "Bar1"
+    )
+    val h2 by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 0.25f,
+        animationSpec = infiniteRepeatable(tween(620, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "Bar2"
+    )
+    val h3 by infiniteTransition.animateFloat(
+        initialValue = 0.45f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(tween(530, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "Bar3"
+    )
+    val h4 by infiniteTransition.animateFloat(
+        initialValue = 0.75f,
+        targetValue = 0.35f,
+        animationSpec = infiniteRepeatable(tween(590, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "Bar4"
+    )
+
+    Row(
+        modifier = modifier.height(18.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.5.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        listOf(h1, h2, h3, h4).forEach { heightFraction ->
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(18.dp * heightFraction)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(color)
+            )
+        }
     }
 }
 

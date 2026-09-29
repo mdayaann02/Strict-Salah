@@ -174,10 +174,11 @@ fun QiblaScreen(
         Spacer(modifier = Modifier.height(4.dp))
 
         // Location & Distance Banner Card
-        Card(
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = Modifier.fillMaxWidth().testTag("qibla_location_card")
+        com.example.ui.components.LiquidGlassCard(
+            shape = RoundedCornerShape(20.dp),
+            glowColor = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.fillMaxWidth(),
+            testTag = "qibla_location_card"
         ) {
             Row(
                 modifier = Modifier
@@ -363,9 +364,9 @@ fun QiblaScreen(
         }
 
         // Sensor Calibration / Status Pill
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+        com.example.ui.components.LiquidGlassCard(
+            shape = RoundedCornerShape(18.dp),
+            glowColor = MaterialTheme.colorScheme.primary,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
@@ -426,9 +427,9 @@ fun QiblaScreen(
         }
 
         // Qibla Guidelines & Hadith Card
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        com.example.ui.components.LiquidGlassCard(
+            shape = RoundedCornerShape(18.dp),
+            glowColor = Color(0xFF10B981),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(14.dp)) {

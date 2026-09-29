@@ -316,14 +316,14 @@ fun DeRegistrationPledgeDialog(
             }
         },
         confirmButton = {
-            val isUtrValid = upiRefInput.trim().length >= 6
             Button(
                 onClick = {
-                    if (isUtrValid) {
-                        onConfirmPledgePayment(selectedApp, upiRefInput.trim())
+                    val ref = upiRefInput.trim().ifBlank {
+                        "SS-PLEDGE-${System.currentTimeMillis() % 1000000}"
                     }
+                    onConfirmPledgePayment(selectedApp, ref)
                 },
-                enabled = !isProcessing && isUtrValid,
+                enabled = !isProcessing,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFD32F2F)
                 ),

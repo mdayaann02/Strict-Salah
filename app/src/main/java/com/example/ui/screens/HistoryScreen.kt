@@ -80,9 +80,9 @@ fun HistoryScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // Offered Card
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = Color(0xFF198754).copy(alpha = 0.15f),
+            com.example.ui.components.LiquidGlassCard(
+                shape = RoundedCornerShape(18.dp),
+                glowColor = Color(0xFF198754),
                 modifier = Modifier.weight(1f)
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
@@ -102,9 +102,9 @@ fun HistoryScreen(
             }
 
             // Free Skips Remaining Card
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = if (profile.freeSkipsRemaining > 0) Color(0xFFFFB300).copy(alpha = 0.15f) else Color(0xFFD32F2F).copy(alpha = 0.15f),
+            com.example.ui.components.LiquidGlassCard(
+                shape = RoundedCornerShape(18.dp),
+                glowColor = if (profile.freeSkipsRemaining > 0) Color(0xFFFFB300) else Color(0xFFD32F2F),
                 modifier = Modifier.weight(1f)
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
@@ -124,9 +124,9 @@ fun HistoryScreen(
             }
 
             // Penalty Paid Card
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = Color(0xFFD32F2F).copy(alpha = 0.15f),
+            com.example.ui.components.LiquidGlassCard(
+                shape = RoundedCornerShape(18.dp),
+                glowColor = Color(0xFFD32F2F),
                 modifier = Modifier.weight(1f)
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
@@ -246,10 +246,15 @@ fun PrayerLogItemCard(log: PrayerLogEntity) {
         } else null
     }
 
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
+    val logGlowColor = when (log.status) {
+        "OFFERED" -> Color(0xFF10B981)
+        "SKIPPED" -> Color(0xFFEF4444)
+        else -> Color(0xFF3B82F6)
+    }
+
+    com.example.ui.components.LiquidGlassCard(
+        shape = RoundedCornerShape(18.dp),
+        glowColor = logGlowColor,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -364,10 +369,9 @@ fun PenaltyTransactionCard(transaction: PenaltyTransactionEntity) {
         SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.US).format(Date(transaction.timestamp))
     }
 
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
+    com.example.ui.components.LiquidGlassCard(
+        shape = RoundedCornerShape(18.dp),
+        glowColor = Color(0xFFEF4444),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
