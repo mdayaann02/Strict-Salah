@@ -51,10 +51,14 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -78,7 +82,7 @@ import com.example.ui.viewmodel.AppScreen
 import kotlin.math.sin
 
 /**
- * Ambient Liquid Fluid Background that renders smooth animated liquid orbs
+ * Ambient Liquid Fluid Background that renders smooth animated chromatic liquid orbs
  * creating realistic depth and refraction behind translucent glass panels
  * inspired by Apple Music's vibrant fluid mesh gradients on iOS.
  */
@@ -111,10 +115,10 @@ fun LiquidGlassBackground(
     )
 
     val wavePulse by infiniteTransition.animateFloat(
-        initialValue = 0.88f,
+        initialValue = 0.90f,
         targetValue = 1.18f,
         animationSpec = infiniteRepeatable(
-            animation = tween(7500, easing = FastOutSlowInEasing),
+            animation = tween(7000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "WavePulse"
@@ -127,12 +131,12 @@ fun LiquidGlassBackground(
                 .fillMaxSize()
                 .background(
                     if (isAmoled) Color(0xFF000000)
-                    else if (isDark) Color(0xFF080D17)
+                    else if (isDark) Color(0xFF070C16)
                     else Color(0xFFF1F5F9)
                 )
         )
 
-        // Animated Liquid Mesh Orbs (Apple Music Liquid Glow)
+        // Animated Liquid Mesh Orbs (Apple Music / iOS Liquid Glow)
         if (!isAmoled) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val width = size.width
@@ -142,31 +146,31 @@ fun LiquidGlassBackground(
                 val rad2 = Math.toRadians(floatAnim2.toDouble())
 
                 // 4 Smooth floating ambient liquid orbs
-                val orb1X = width * 0.22f + (sin(rad1) * 85f).toFloat()
-                val orb1Y = height * 0.22f + (sin(rad1 * 0.8) * 110f).toFloat()
+                val orb1X = width * 0.22f + (sin(rad1) * 90f).toFloat()
+                val orb1Y = height * 0.20f + (sin(rad1 * 0.8) * 115f).toFloat()
 
-                val orb2X = width * 0.78f + (sin(rad2) * 95f).toFloat()
-                val orb2Y = height * 0.68f + (sin(rad2 * 0.7) * 125f).toFloat()
+                val orb2X = width * 0.80f + (sin(rad2) * 100f).toFloat()
+                val orb2Y = height * 0.68f + (sin(rad2 * 0.7) * 130f).toFloat()
 
-                val orb3X = width * 0.52f + (sin(rad1 * 1.3) * 105f).toFloat()
-                val orb3Y = height * 0.42f + (sin(rad2 * 0.6) * 75f).toFloat()
+                val orb3X = width * 0.52f + (sin(rad1 * 1.3) * 110f).toFloat()
+                val orb3Y = height * 0.42f + (sin(rad2 * 0.6) * 80f).toFloat()
 
-                val orb4X = width * 0.18f + (sin(rad2 * 1.1) * 70f).toFloat()
-                val orb4Y = height * 0.82f + (sin(rad1 * 0.9) * 95f).toFloat()
+                val orb4X = width * 0.18f + (sin(rad2 * 1.1) * 75f).toFloat()
+                val orb4Y = height * 0.82f + (sin(rad1 * 0.9) * 100f).toFloat()
 
-                val aqua = if (isDark) LiquidAqua.copy(alpha = 0.16f) else LiquidAqua.copy(alpha = 0.22f)
-                val emerald = if (isDark) LiquidEmerald.copy(alpha = 0.14f) else LiquidEmerald.copy(alpha = 0.20f)
-                val indigo = if (isDark) LiquidIndigo.copy(alpha = 0.13f) else LiquidIndigo.copy(alpha = 0.18f)
-                val rose = if (isDark) LiquidRose.copy(alpha = 0.09f) else LiquidRose.copy(alpha = 0.13f)
+                val aqua = if (isDark) LiquidAqua.copy(alpha = 0.18f) else LiquidAqua.copy(alpha = 0.25f)
+                val emerald = if (isDark) LiquidEmerald.copy(alpha = 0.16f) else LiquidEmerald.copy(alpha = 0.22f)
+                val indigo = if (isDark) LiquidIndigo.copy(alpha = 0.14f) else LiquidIndigo.copy(alpha = 0.20f)
+                val rose = if (isDark) LiquidRose.copy(alpha = 0.10f) else LiquidRose.copy(alpha = 0.15f)
 
                 // Draw luminous ambient radial orbs
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(aqua, Color.Transparent),
                         center = Offset(orb1X, orb1Y),
-                        radius = width * 0.65f * wavePulse
+                        radius = width * 0.68f * wavePulse
                     ),
-                    radius = width * 0.65f * wavePulse,
+                    radius = width * 0.68f * wavePulse,
                     center = Offset(orb1X, orb1Y)
                 )
 
@@ -174,9 +178,9 @@ fun LiquidGlassBackground(
                     brush = Brush.radialGradient(
                         colors = listOf(emerald, Color.Transparent),
                         center = Offset(orb2X, orb2Y),
-                        radius = width * 0.70f * wavePulse
+                        radius = width * 0.72f * wavePulse
                     ),
-                    radius = width * 0.70f * wavePulse,
+                    radius = width * 0.72f * wavePulse,
                     center = Offset(orb2X, orb2Y)
                 )
 
@@ -184,9 +188,9 @@ fun LiquidGlassBackground(
                     brush = Brush.radialGradient(
                         colors = listOf(indigo, Color.Transparent),
                         center = Offset(orb3X, orb3Y),
-                        radius = width * 0.60f * wavePulse
+                        radius = width * 0.62f * wavePulse
                     ),
-                    radius = width * 0.60f * wavePulse,
+                    radius = width * 0.62f * wavePulse,
                     center = Offset(orb3X, orb3Y)
                 )
 
@@ -194,9 +198,9 @@ fun LiquidGlassBackground(
                     brush = Brush.radialGradient(
                         colors = listOf(rose, Color.Transparent),
                         center = Offset(orb4X, orb4Y),
-                        radius = width * 0.55f * wavePulse
+                        radius = width * 0.58f * wavePulse
                     ),
-                    radius = width * 0.55f * wavePulse,
+                    radius = width * 0.58f * wavePulse,
                     center = Offset(orb4X, orb4Y)
                 )
             }
@@ -225,42 +229,42 @@ fun LiquidGlassSurface(
     val surfaceBrush = if (isAmoled) {
         Brush.verticalGradient(
             colors = listOf(
-                Color(0xFF070B12).copy(alpha = 0.94f),
-                Color(0xFF030508).copy(alpha = 0.88f)
+                Color(0xFF090E18).copy(alpha = 0.95f),
+                Color(0xFF030509).copy(alpha = 0.90f)
             )
         )
     } else if (isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.12f),
-                Color.White.copy(alpha = 0.05f),
-                Color(0xFF0A101D).copy(alpha = 0.65f)
+                Color.White.copy(alpha = 0.15f),
+                Color.White.copy(alpha = 0.06f),
+                Color(0xFF0D1527).copy(alpha = 0.72f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.88f),
-                Color.White.copy(alpha = 0.72f),
-                Color(0xFFF0FDF4).copy(alpha = 0.50f)
+                Color.White.copy(alpha = 0.90f),
+                Color.White.copy(alpha = 0.75f),
+                Color(0xFFF0FDF4).copy(alpha = 0.55f)
             )
         )
     }
 
     val borderBrush = Brush.verticalGradient(
         colors = listOf(
-            if (isDark) Color.White.copy(alpha = 0.42f * borderAlpha) else Color.White.copy(alpha = 0.90f * borderAlpha),
-            if (isDark) Color.White.copy(alpha = 0.10f * borderAlpha) else Color.White.copy(alpha = 0.35f * borderAlpha)
+            if (isDark) Color.White.copy(alpha = 0.50f * borderAlpha) else Color.White.copy(alpha = 0.95f * borderAlpha),
+            if (isDark) Color.White.copy(alpha = 0.12f * borderAlpha) else Color.White.copy(alpha = 0.40f * borderAlpha)
         )
     )
 
     Box(
         modifier = modifier
             .shadow(
-                elevation = if (isAmoled) 0.dp else 14.dp,
+                elevation = if (isAmoled) 0.dp else 16.dp,
                 shape = shape,
-                spotColor = glowColor.copy(alpha = if (isDark) 0.22f else 0.14f),
-                ambientColor = Color.Black.copy(alpha = if (isDark) 0.30f else 0.08f)
+                spotColor = glowColor.copy(alpha = if (isDark) 0.28f else 0.18f),
+                ambientColor = Color.Black.copy(alpha = if (isDark) 0.35f else 0.10f)
             )
             .clip(shape)
             .background(surfaceBrush)
@@ -274,12 +278,12 @@ fun LiquidGlassSurface(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(1.2.dp)
+                .height(1.5.dp)
                 .background(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.White.copy(alpha = if (isDark) 0.65f else 0.95f),
+                            Color.White.copy(alpha = if (isDark) 0.75f else 0.98f),
                             Color.Transparent
                         )
                     )
@@ -384,8 +388,9 @@ data class NavTabItem(
 )
 
 /**
- * Floating Liquid Glass Navigation Bar with realistic liquid water droplet
- * physics that glide smoothly and stretch/contract dynamically from tab to tab.
+ * Floating Liquid Glass Navigation Bar with authentic Apple Music / Instagram frosted glass
+ * floating pill dock, real-time backdrop blur refraction, 1.25dp specular prism bevel,
+ * and dynamic liquid water droplet physics that glide smoothly and stretch/contract dynamically.
  */
 @Composable
 fun FloatingLiquidGlassNavBar(
@@ -410,60 +415,125 @@ fun FloatingLiquidGlassNavBar(
         label = "ShimmerPhase"
     )
 
+    val dockShape = RoundedCornerShape(36.dp)
+
+    // Glass backdrop brush with high-end iOS acrylic frosted translucency
+    val glassDockBrush = if (isAmoled) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF0F172A).copy(alpha = 0.92f),
+                Color(0xFF050B14).copy(alpha = 0.96f)
+            )
+        )
+    } else if (isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.18f),
+                Color(0xFF1E293B).copy(alpha = 0.78f),
+                Color(0xFF0F172A).copy(alpha = 0.88f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.92f),
+                Color.White.copy(alpha = 0.78f),
+                Color(0xFFF1F5F9).copy(alpha = 0.65f)
+            )
+        )
+    }
+
+    // Specular border gradient for 3D beveled glass prism edge
+    val glassBorderBrush = Brush.verticalGradient(
+        colors = listOf(
+            if (isDark) Color.White.copy(alpha = 0.60f) else Color.White.copy(alpha = 0.98f),
+            if (isDark) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.45f)
+        )
+    )
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = 18.dp, vertical = 14.dp)
             .testTag("floating_liquid_glass_nav_bar"),
         contentAlignment = Alignment.Center
     ) {
-        LiquidGlassSurface(
-            shape = RoundedCornerShape(32.dp),
-            isAmoled = isAmoled,
-            glowColor = LiquidAqua,
-            modifier = Modifier.fillMaxWidth()
+        // Outer Frosted Glass Pill Dock Container
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(
+                    elevation = if (isAmoled) 0.dp else 22.dp,
+                    shape = dockShape,
+                    spotColor = LiquidAqua.copy(alpha = if (isDark) 0.35f else 0.22f),
+                    ambientColor = Color.Black.copy(alpha = if (isDark) 0.45f else 0.15f)
+                )
+                .clip(dockShape)
+                .background(glassDockBrush)
+                .border(
+                    width = 1.25.dp,
+                    brush = glassBorderBrush,
+                    shape = dockShape
+                )
         ) {
+            // Top specular gloss highlight gleam
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.5.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.White.copy(alpha = if (isDark) 0.85f else 0.98f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+
+            // Dynamic Tab Content & Liquid Droplet Slider
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .padding(horizontal = 6.dp, vertical = 6.dp)
             ) {
                 val totalWidth = maxWidth
                 val tabCount = items.size.coerceAtLeast(1)
                 val tabWidth = totalWidth / tabCount
 
-                // Animated position for the dynamic liquid droplet indicator
+                // Animated position for dynamic liquid droplet indicator
                 val targetOffsetX = tabWidth * selectedIndex
                 val animatedOffsetX by animateDpAsState(
                     targetValue = targetOffsetX,
                     animationSpec = spring(
-                        dampingRatio = 0.62f, // Gentle fluid bounce
+                        dampingRatio = 0.58f, // Fluid elastic spring
                         stiffness = Spring.StiffnessMediumLow
                     ),
                     label = "DropletSpringX"
                 )
 
-                // Velocity / stretch deformation effect
+                // Velocity & stretch deformation physics
                 var lastTargetIndex by remember { mutableStateOf(selectedIndex) }
                 val isMoving = lastTargetIndex != selectedIndex
                 lastTargetIndex = selectedIndex
 
                 val dropletWidthScale by animateFloatAsState(
-                    targetValue = if (isMoving) 1.25f else 1.0f,
+                    targetValue = if (isMoving) 1.22f else 1.0f,
                     animationSpec = spring(
-                        dampingRatio = 0.55f,
+                        dampingRatio = 0.52f,
                         stiffness = Spring.StiffnessLow
                     ),
                     label = "DropletStretch"
                 )
 
-                // 1. Dynamic Liquid Water Droplet Indicator (Slides behind active tab)
+                // 1. Dynamic Liquid Water Droplet Capsule (Slides behind active tab)
                 Box(
                     modifier = Modifier
                         .offset(x = animatedOffsetX)
                         .width(tabWidth)
-                        .height(52.dp)
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                        .height(54.dp)
+                        .padding(horizontal = 3.dp, vertical = 2.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     // Outer Fluid Glow Aura
@@ -471,57 +541,57 @@ fun FloatingLiquidGlassNavBar(
                         modifier = Modifier
                             .fillMaxSize()
                             .scale(scaleX = dropletWidthScale, scaleY = 1.0f)
-                            .clip(RoundedCornerShape(26.dp))
+                            .clip(RoundedCornerShape(28.dp))
                             .background(
                                 brush = Brush.radialGradient(
                                     colors = listOf(
-                                        LiquidAqua.copy(alpha = if (isDark) 0.35f else 0.45f),
-                                        LiquidTeal.copy(alpha = if (isDark) 0.20f else 0.25f),
+                                        LiquidAqua.copy(alpha = if (isDark) 0.42f else 0.50f),
+                                        LiquidTeal.copy(alpha = if (isDark) 0.25f else 0.30f),
                                         Color.Transparent
                                     )
                                 )
                             )
                     )
 
-                    // Inner Liquid Capsule Droplet
+                    // Inner Liquid Capsule Droplet (Apple Music Neon Translucency)
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .scale(scaleX = dropletWidthScale, scaleY = 1.0f)
-                            .clip(RoundedCornerShape(24.dp))
+                            .clip(RoundedCornerShape(26.dp))
                             .background(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.38f else 0.22f),
-                                        LiquidTeal.copy(alpha = if (isDark) 0.22f else 0.14f)
+                                        MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.45f else 0.28f),
+                                        LiquidTeal.copy(alpha = if (isDark) 0.28f else 0.18f)
                                     )
                                 )
                             )
                             .border(
-                                width = 1.dp,
+                                width = 1.2.dp,
                                 brush = Brush.linearGradient(
                                     colors = listOf(
-                                        LiquidAqua.copy(alpha = 0.7f),
-                                        LiquidTeal.copy(alpha = 0.3f),
+                                        LiquidAqua.copy(alpha = 0.85f),
+                                        LiquidTeal.copy(alpha = 0.45f),
                                         Color.Transparent
                                     )
                                 ),
-                                shape = RoundedCornerShape(24.dp)
+                                shape = RoundedCornerShape(26.dp)
                             )
                     )
 
-                    // Subtle Water Wave Reflection Line inside droplet
+                    // Top Bevel Glint inside droplet
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.6f)
+                            .fillMaxWidth(0.65f)
                             .height(2.dp)
                             .align(Alignment.TopCenter)
-                            .padding(top = 4.dp)
+                            .padding(top = 3.dp)
                             .background(
                                 brush = Brush.horizontalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Color.White.copy(alpha = 0.75f),
+                                        Color.White.copy(alpha = 0.88f),
                                         Color.Transparent
                                     )
                                 ),
@@ -540,7 +610,7 @@ fun FloatingLiquidGlassNavBar(
                         val isSelected = selectedIndex == index
 
                         val iconScale by animateFloatAsState(
-                            targetValue = if (isSelected) 1.15f else 1.0f,
+                            targetValue = if (isSelected) 1.18f else 1.0f,
                             animationSpec = spring(
                                 dampingRatio = 0.5f,
                                 stiffness = Spring.StiffnessMedium
@@ -549,16 +619,16 @@ fun FloatingLiquidGlassNavBar(
                         )
 
                         val activeColor = if (isDark) LiquidAqua else MaterialTheme.colorScheme.primary
-                        val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                        val inactiveColor = if (isDark) Color.White.copy(alpha = 0.65f) else Color.Black.copy(alpha = 0.58f)
 
                         Box(
                             modifier = Modifier
                                 .width(tabWidth)
-                                .height(52.dp)
-                                .clip(RoundedCornerShape(24.dp))
+                                .height(54.dp)
+                                .clip(RoundedCornerShape(26.dp))
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
-                                    indication = null // Custom water droplet acts as the indication
+                                    indication = null // Custom water droplet acts as the tactile feedback
                                 ) {
                                     onTabSelected(item.screen)
                                 }
@@ -589,7 +659,7 @@ fun FloatingLiquidGlassNavBar(
                                             imageVector = item.icon,
                                             contentDescription = item.title,
                                             tint = if (isSelected) activeColor else inactiveColor,
-                                            modifier = Modifier.size(22.dp)
+                                            modifier = Modifier.size(23.dp)
                                         )
                                     }
                                 } else {
@@ -597,7 +667,7 @@ fun FloatingLiquidGlassNavBar(
                                         imageVector = item.icon,
                                         contentDescription = item.title,
                                         tint = if (isSelected) activeColor else inactiveColor,
-                                        modifier = Modifier.size(22.dp)
+                                        modifier = Modifier.size(23.dp)
                                     )
                                 }
 
@@ -606,7 +676,7 @@ fun FloatingLiquidGlassNavBar(
                                 Text(
                                     text = item.title,
                                     fontSize = 10.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
                                     color = if (isSelected) activeColor else inactiveColor,
                                     maxLines = 1
                                 )
@@ -618,3 +688,4 @@ fun FloatingLiquidGlassNavBar(
         }
     }
 }
+

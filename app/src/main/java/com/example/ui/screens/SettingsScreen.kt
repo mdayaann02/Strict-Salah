@@ -957,14 +957,14 @@ fun SettingsScreen(
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "Strict Salah v2.0 is engineered with Liquid Glass dynamic fluid UI, Firebase Auth, Google Sign-In, multi-gender dynamic app logo customization, and robust UPI payment redirection.",
+                    text = "Strict Salah v4.0 is engineered with Liquid Glass frosted acrylic pill dock UI, animated chromatic fluid mesh shaders, Firebase Auth, Google Sign-In, multi-gender dynamic app logo customization, and robust UPI payment redirection.",
                     fontSize = 11.sp,
                     lineHeight = 15.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "• Version: 2.0 (Official Personalized Release)\n• Authentication: Firebase Auth & Google Sign-In\n• Official Payee UPI: 8217317725@superyes\n• Storage: Encrypted Offline Room Database & Google Drive Sync",
+                    text = "• Version: 4.0 (Official Liquid Glass Release)\n• Authentication: Firebase Auth & Google Sign-In\n• Official Payee UPI: 8217317725@superyes\n• Storage: Encrypted Offline Room Database & Google Drive Sync",
                     fontSize = 11.sp,
                     lineHeight = 16.sp,
                     color = MaterialTheme.colorScheme.onSurface
@@ -972,7 +972,7 @@ fun SettingsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(80.dp))
+        Spacer(modifier = Modifier.height(100.dp))
     }
 }
 

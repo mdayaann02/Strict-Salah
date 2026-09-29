@@ -268,85 +268,77 @@ fun MainAppScreen(viewModel: MainViewModel) {
     )
 
     LiquidGlassBackground(isAmoled = isAmoled) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            containerColor = Color.Transparent, // Allow liquid fluid background to shine through
-            topBar = {
-                // Frosted Liquid Glass Top Bar
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.surface.copy(alpha = if (isAmoled) 0.95f else 0.85f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = if (isAmoled) 0.80f else 0.65f),
-                                    Color.Transparent
+        Box(modifier = Modifier.fillMaxSize()) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                containerColor = Color.Transparent, // Allow liquid fluid background to shine through
+                topBar = {
+                    // Frosted Liquid Glass Top Bar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = if (isAmoled) 0.95f else 0.85f),
+                                        MaterialTheme.colorScheme.surface.copy(alpha = if (isAmoled) 0.80f else 0.65f),
+                                        Color.Transparent
+                                    )
                                 )
                             )
-                        )
-                ) {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                text = when (uiState.currentScreen) {
-                                    AppScreen.HOME -> "Strict Salah 🕌"
-                                    AppScreen.QIBLA -> "Qibla Compass 🧭"
-                                    AppScreen.STATISTICS -> "Salah Statistics 📊"
-                                    AppScreen.HISTORY -> "Salah Ledger"
-                                    AppScreen.SETTINGS -> "Salah Schedule & Settings"
-                                    else -> "Strict Salah"
-                                },
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
-                            )
-                        },
-                        actions = {
-                            IconButton(
-                                onClick = { showProfileDialog = true },
-                                modifier = Modifier.testTag("top_right_profile_button")
-                            ) {
-                                if (uiState.profile.isGoogleSignedIn && uiState.profile.googlePhotoUrl.isNotBlank()) {
-                                    AsyncImage(
-                                        model = uiState.profile.googlePhotoUrl,
-                                        contentDescription = "Profile",
-                                        modifier = Modifier
-                                            .size(32.dp)
-                                            .clip(CircleShape)
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Default.AccountCircle,
-                                        contentDescription = "Profile & Account",
-                                        tint = if (uiState.profile.isGoogleSignedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(30.dp)
-                                    )
+                    ) {
+                        TopAppBar(
+                            title = {
+                                Text(
+                                    text = when (uiState.currentScreen) {
+                                        AppScreen.HOME -> "Strict Salah 🕌"
+                                        AppScreen.QIBLA -> "Qibla Compass 🧭"
+                                        AppScreen.STATISTICS -> "Salah Statistics 📊"
+                                        AppScreen.HISTORY -> "Salah Ledger"
+                                        AppScreen.SETTINGS -> "Salah Schedule & Settings"
+                                        else -> "Strict Salah"
+                                    },
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp
+                                )
+                            },
+                            actions = {
+                                IconButton(
+                                    onClick = { showProfileDialog = true },
+                                    modifier = Modifier.testTag("top_right_profile_button")
+                                ) {
+                                    if (uiState.profile.isGoogleSignedIn && uiState.profile.googlePhotoUrl.isNotBlank()) {
+                                        AsyncImage(
+                                            model = uiState.profile.googlePhotoUrl,
+                                            contentDescription = "Profile",
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                                .clip(CircleShape)
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.AccountCircle,
+                                            contentDescription = "Profile & Account",
+                                            tint = if (uiState.profile.isGoogleSignedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(30.dp)
+                                        )
+                                    }
                                 }
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent,
-                            titleContentColor = MaterialTheme.colorScheme.onBackground
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent,
+                                titleContentColor = MaterialTheme.colorScheme.onBackground
+                            )
                         )
-                    )
-                }
-            },
-            bottomBar = {
-                // Floating Translucent Liquid Glass Navigation Bar with Dynamic Water Droplet Animation
-                FloatingLiquidGlassNavBar(
-                    currentScreen = uiState.currentScreen,
-                    items = navItems,
-                    onTabSelected = { viewModel.setScreen(it) },
-                    isAmoled = isAmoled
-                )
-            },
-            snackbarHost = { SnackbarHost(snackbarHostState) }
-        ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
+                    }
+                },
+                snackbarHost = { SnackbarHost(snackbarHostState) }
+            ) { innerPadding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = innerPadding.calculateTopPadding())
+                ) {
                 when (uiState.currentScreen) {
                     AppScreen.HOME -> HomeScreen(
                         uiState = uiState,
@@ -454,5 +446,17 @@ fun MainAppScreen(viewModel: MainViewModel) {
                 }
             }
         }
+
+        // Floating Frosted Liquid Glass Navigation Bar (Instagram & Apple Music pill dock overlay)
+        FloatingLiquidGlassNavBar(
+            currentScreen = uiState.currentScreen,
+            items = navItems,
+            onTabSelected = { viewModel.setScreen(it) },
+            isAmoled = isAmoled,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 6.dp)
+        )
     }
+}
 }
